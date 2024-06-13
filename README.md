@@ -10,7 +10,7 @@ A minimal GitHub App that integrates with Slack
 - [ ] Add a slash command creates a bi-directional sync between a slack channel and a github repository. When an issue is posted, create a message in the slack channel. When a message is posted in the slack channel, create an issue in the github repository. Use Supabase for data persistence.
 - [ ] Prompt the user to authenticate when creating a bi-directional sync, and user their authentication to create issues.
 
-## Local Development
+## Local Development on local machine
 
 ### Initial setup
 
@@ -24,9 +24,24 @@ npm run scripts/register-github-app.js
 
 ### Running the app
 
+```sh
+    npm run dev
 ```
-npm run dev
+
+## Local Development with docker-compose
+
+### Run application dev server
+
+```sh
+    docker-compose up
 ```
+
+### If first time: Register app with command
+
+```sh
+    docker exec githup-app npm run register-github-app
+```
+
 
 Open a repository that belongs to your user account and create an issue. The app should comment on the issue.
 

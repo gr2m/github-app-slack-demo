@@ -18,7 +18,7 @@ async function run() {
       url: "https://example.com/",
       active: true,
     },
-  });
+  },{port: 8888});
 
   // convert private key to pkcs8 format (recommended for better cross plattform support)
   const privateKeyPKCS8 = String(
