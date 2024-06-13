@@ -8,4 +8,4 @@ services:
       - GITHUB_APP_ID=${GITHUB_APP_ID}
       - GITHUB_APP_PRIVATE_KEY=${GITHUB_APP_PRIVATE_KEY}
     ports:
-      - 8888:8888
+      - ${SETUP_PORT}:8888
