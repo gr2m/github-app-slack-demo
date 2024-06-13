@@ -9,7 +9,6 @@ const app = new bolt.App({
     signingSecret: process.env.SLACK_SIGNING_SECRET
 });
 
-
 await app.start(process.env.SLACK_PORT)
 
 logger.info('⚡️ Bolt app is running!');
