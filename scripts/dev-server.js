@@ -4,6 +4,7 @@ import { App, Octokit } from "octokit";
 import { pino } from "pino";
 
 import githubApp from "../github-app.js";
+import { startSlackApp } from "./start-slack.js";
 
 const env = cleanEnv(process.env, {
   GITHUB_APP_ID: num(),
@@ -49,3 +50,4 @@ relay.on("error", (error) => {
 });
 
 relay.start();
+startSlackApp(log)
