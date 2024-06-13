@@ -6,16 +6,20 @@
   "description": "A minimal GitHub App that integrates with Slack",
   "main": "index.js",
   "scripts": {
-    "dev": "node --env-file .env scripts/dev-server.js | pino-pretty --singleLine",
+    "dev:github": "node --env-file .env scripts/dev-server.js | pino-pretty --singleLine",
+    "dev:slack": "node  --env-file .env scripts/start-slack.js | pino-pretty --singleLine",
+    "dev": "concurrently \"npm run dev:github\" \"npm run dev:slack\"",
     "register-github-app": "node scripts/register-github-app.js"
   },
   "license": "MIT",
   "dependencies": {
+    "@slack/bolt": "^3.18.0",
     "envalid": "^8.0.0",
     "octokit": "^4.0.2",
     "pino": "^9.2.0"
   },
   "devDependencies": {
+    "concurrently": "^8.2.2",
     "github-app-webhook-relay-polling": "^2.0.0",
     "pino-pretty": "^11.2.1",
     "register-github-app": "^2.0.2"
