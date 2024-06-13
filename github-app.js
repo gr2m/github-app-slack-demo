@@ -9,8 +9,8 @@ export default async function githubApp(app) {
     const repo = payload.repository.name;
     const issueNumber = payload.issue.number;
 
-    app.log.info(
-      { url: payload.issue.html_url, title: payload.issue.title },
+    octokit.log.info(
+      { event: id, issue: payload.issue.html_url, title: payload.issue.title },
       "An issue was opened"
     );
 
@@ -26,7 +26,10 @@ export default async function githubApp(app) {
       }
     );
 
-    app.log.info({ url: comment.html_url }, "Added a comment to an issue");
+    octokit.log.info(
+      { event: id, comment: comment.html_url },
+      "Added a comment to an issue"
+    );
   });
 
   // handle webhook error event

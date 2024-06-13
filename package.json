@@ -6,7 +6,7 @@
   "description": "A minimal GitHub App that integrates with Slack",
   "main": "index.js",
   "scripts": {
-    "dev": "node scripts/dev-server.js",
+    "dev": "node --env-file .env scripts/dev-server.js | pino-pretty --singleLine",
     "register-github-app": "node scripts/register-github-app.js"
   },
   "license": "MIT",
