@@ -1,0 +1,23 @@
+{
+  "name": "github-app-slack-demo",
+  "version": "0.0.0-development",
+  "type": "module",
+  "private": true,
+  "description": "A minimal GitHub App that integrates with Slack",
+  "main": "index.js",
+  "scripts": {
+    "dev": "node scripts/dev-server.js",
+    "register-github-app": "node scripts/register-github-app.js"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "envalid": "^8.0.0",
+    "octokit": "^4.0.2",
+    "pino": "^9.2.0"
+  },
+  "devDependencies": {
+    "github-app-webhook-relay-polling": "^2.0.0",
+    "pino-pretty": "^11.2.1",
+    "register-github-app": "^2.0.2"
+  }
+}
