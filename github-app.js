@@ -1,8 +1,5 @@
 /**
- * This function is our "GitHub App". It's called from the `/api/github/*` routes
- * and handles webhooks and OAuth.
- *
- * The `app` is an instance of `@octokit/app`
+ * This function is our "GitHub App". It's where we register our event and error handlers.
  *
  * @param {import("octokit").App} app
  */
