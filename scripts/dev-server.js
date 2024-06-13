@@ -10,6 +10,7 @@ const env = cleanEnv(process.env, {
   GITHUB_APP_PRIVATE_KEY: str(),
 });
 const log = pino();
+const octokitLog = log.child({ name: "octokit" });
 
 // instantiate the Octokit app
 const app = new App({
@@ -21,14 +22,20 @@ const app = new App({
   },
   Octokit: Octokit.defaults({
     userAgent: "gr2m/github-app-slack-demo",
-    log: log.child({ name: "octokit" }),
   }),
+  // TODO: pre-binding should not be necessary, seems like a new bug in Octokit
+  log: {
+    debug: octokitLog.debug.bind(octokitLog),
+    info: octokitLog.info.bind(octokitLog),
+    warn: octokitLog.warn.bind(octokitLog),
+    error: octokitLog.error.bind(octokitLog),
+  },
 });
 
 // verify credentials and say hi
 // https://docs.github.com/rest/apps/apps#get-the-authenticated-app
 const { data: appInfo } = await app.octokit.request("GET /app");
-console.log(`Authenticated as ${appInfo.slug} (${appInfo.html_url})!`);
+log.info({ slug: appInfo.slug, url: appInfo.html_url }, `Authenticated`);
 
 // register webhook handlers
 await githubApp(app);
