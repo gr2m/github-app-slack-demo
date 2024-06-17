@@ -7,7 +7,8 @@
   "main": "index.js",
   "scripts": {
     "dev": "node --env-file .env scripts/dev-server.js | pino-pretty --singleLine",
-    "register-github-app": "node scripts/register-github-app.js"
+    "register-github-app": "node scripts/register-github-app.js",
+    "functions":"netlify dev"
   },
   "license": "MIT",
   "dependencies": {
@@ -17,6 +18,7 @@
   },
   "devDependencies": {
     "github-app-webhook-relay-polling": "^2.0.0",
+    "netlify-cli": "^17.28.0",
     "pino-pretty": "^11.2.1",
     "register-github-app": "^2.0.2"
   }
