@@ -54,6 +54,7 @@ export const handler = async (event, context) => {
       body: JSON.stringify({ error: 'Method not allowed' }),
     }
   }
+  
   try {
     const app = await setupApp();
     await app.webhooks.verifyAndReceive({
@@ -64,15 +65,13 @@ export const handler = async (event, context) => {
       event.headers["x-hub-signature-256"],
       payload: JSON.parse(event.body)
     })
+  } catch (error) {
+    log.error(error, 'Handler error');
+    
+  }finally{
     return {
       statusCode: 200,
       body: JSON.stringify({ ok: true }),
-    };
-  } catch (error) {
-    log.error(error, 'Handler error');
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: 'Internal Server Error' }),
-    };
+    }
   }
 };
