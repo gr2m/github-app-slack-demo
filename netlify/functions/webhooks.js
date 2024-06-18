@@ -1,10 +1,8 @@
-import { App, Octokit, createNodeMiddleware } from 'octokit';
+import { App, Octokit } from 'octokit';
 import githubApp from '../../github-app';
 import pino from 'pino';
-import express from 'express';
-const serverless = require('serverless-http');
 
-const expressApp = express();
+
 const log = pino();
 const octokitLog = log.child({ name: 'octokit' });
 
@@ -35,9 +33,8 @@ const setupApp = async () => {
     log.info({ slug: appInfo.slug, url: appInfo.html_url }, `Authenticated`);
 
     await githubApp(app);
-    expressApp.use(createNodeMiddleware(app));
-
-    return serverless(expressApp);
+    
+    return app
   } catch (error) {
     log.error(error, 'Failed to set up app');
     throw error;
@@ -58,8 +55,15 @@ export const handler = async (event, context) => {
     }
   }
   try {
-    const handler = await setupApp();
-    await handler(event, context);
+    const app = await setupApp();
+    await app.webhooks.verifyAndReceive({
+      id: event.headers["X-GitHub-Delivery"] ||
+      event.headers["x-github-delivery"],
+      name: event.headers["X-GitHub-Event"] || event.headers["x-github-event"],
+      signature: event.headers["X-Hub-Signature-256"] ||
+      event.headers["x-hub-signature-256"],
+      payload: JSON.parse(event.body)
+    })
     return {
       statusCode: 200,
       body: JSON.stringify({ ok: true }),
