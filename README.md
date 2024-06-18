@@ -30,6 +30,18 @@ npm run dev
 
 Open a repository that belongs to your user account and create an issue. The app should comment on the issue.
 
+## Run netlify in dev environment
+
+- Make sure you have your.env setup
+
+- Run
+
+```sh
+    npm run functions
+```
+
+- Test endpoint with `http://localhost:8000/api/health`.  All function endpoints are redirected to /api*
+
 ## Licenes
 
 [MIT](LICENSE)
