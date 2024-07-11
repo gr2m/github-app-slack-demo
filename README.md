@@ -45,3 +45,25 @@ Open a repository that belongs to your user account and create an issue. The app
 ## Licenes
 
 [MIT](LICENSE)
+
+## Configuring Slack for Local Development (markdown)
+
+This guide details the steps to configure a Slack app for local development using a manifest file.
+
+### Creating a Slack App with a Manifest
+
+1. **Navigate to the Slack API Apps page:** [https://api.slack.com/quickstart](https://api.slack.com/quickstart)
+2. **Click on "Create an App".**
+3. **Select "From Manifest" as the creation method.**
+4. **Choose the target workspace** where you want to install the app for development.
+5. **Paste the contents of your `slack-manifest.yaml` file** into the provided field.
+6. **Review the requested permissions and click "Next" to proceed.**
+7. **Once created, copy the "Signing Secret".** You will need this value as the `SLACK_SIGNING_SECRET` environment variable for your application.
+
+### Generating a Bot User OAuth Token
+
+1. **Within the Slack App configuration page, navigate to the "OAuth & Permissions" section.**
+2. **Click on "Install App to Workspace" and grant the necessary permissions.**
+3. **Copy the "Bot User OAuth Token".** This value should be stored as the `SLACK_BOT_TOKEN` environment variable for your application.
+
+This setup provides the necessary credentials to interact with the Slack API during local development using your custom manifest file. 
