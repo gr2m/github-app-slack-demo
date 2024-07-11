@@ -61,7 +61,12 @@ async function setupApp() {
 export async function handler (event, context) {
   if (event.httpMethod !== "POST"){
     return {
-      statusCode: 405,
+      statusCode: /* The `405` status code in HTTP indicates that the method used in the request is not
+      allowed for the specified resource. In the provided code snippet, when the
+      `handler` function is called with an HTTP method other than `POST`, it returns a
+      response with a status code of `405` along with an error message indicating that
+      the method is not allowed for that endpoint. */
+      405,
       body: JSON.stringify({ error: 'Method not allowed' }),
     }
   }
@@ -84,6 +89,16 @@ export async function handler (event, context) {
       payload: JSON.parse(event.body)
     })
     clearTimeout(timeout);
+
+    app.webhooks.on('error', (error) => {
+      log.error(error, 'Webhook error');
+    });
+
+    //TODO: Implement the event handler
+    app.webhooks.on('event', (event) => {
+      log.info({ event }, 'Webhook received');
+    }
+    );
     
     if (didTimeout) return {
       statusCode: 202,
