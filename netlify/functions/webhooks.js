@@ -6,9 +6,19 @@ import pino from 'pino';
 const log = pino();
 const octokitLog = log.child({ name: 'octokit' });
 
-const setupApp = async () => {
+let app;
+let setupAppError;
+
+/**
+ * Set up the GitHub App. If the app is already set up, return it.
+ * @returns {Promise<App>}
+ * @throws {Error}
+ * */
+async function setupApp() {
+  if (app) return app;
+  if (setupAppError) throw setupAppError;
   try {
-    const app = new App({
+      app = new App({
       appId: process.env.GITHUB_APP_ID,
       privateKey: process.env.GITHUB_APP_PRIVATE_KEY,
       oauth: {
@@ -37,6 +47,7 @@ const setupApp = async () => {
     return app
   } catch (error) {
     log.error(error, 'Failed to set up app');
+    setupAppError = error;
     throw error;
   }
 };
@@ -47,7 +58,7 @@ const setupApp = async () => {
  * @param {import("@netlify/functions").HandlerEvent} event
  * @param {import("@netlify/functions").HandlerContext} context
  */
-export const handler = async (event, context) => {
+export async function handler (event, context) {
   if (event.httpMethod !== "POST"){
     return {
       statusCode: 405,
@@ -56,6 +67,13 @@ export const handler = async (event, context) => {
   }
   
   try {
+    let didTimeout = false;
+    const timeout = setTimeout(() => {
+      didTimeout = true;
+      response.statusCode = 202;
+      response.end("still processing\n");
+    }, 9000).unref();
+
     const app = await setupApp();
     await app.webhooks.verifyAndReceive({
       id: event.headers["X-GitHub-Delivery"] ||
@@ -65,13 +83,31 @@ export const handler = async (event, context) => {
       event.headers["x-hub-signature-256"],
       payload: JSON.parse(event.body)
     })
+    clearTimeout(timeout);
+    
+    if (didTimeout) return {
+      statusCode: 202,
+      body: JSON.stringify({ ok: true }),
+    };
+
+    return {
+      statusCode: 202,
+    }
+
   } catch (error) {
     log.error(error, 'Handler error');
-    
-  }finally{
+    clearTimeout(timeout);
+
+    const err = Array.from((error).errors)[0];
+    const errorMessage = err.message
+      ? `${err.name}: ${err.message}`
+      : "Error: An Unspecified error occurred";
+    const statusCode = typeof err.status !== "undefined" ? err.status : 500;
+
     return {
-      statusCode: 200,
-      body: JSON.stringify({ ok: true }),
+      statusCode,
+      body: errorMessage,
     }
+    
   }
 };

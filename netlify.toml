@@ -1,5 +1,5 @@
 [build]
-    fucntions = "netlify/functions"
+    functions = "netlify/functions"
 
 [[redirects]]
     from = "/api/*"
