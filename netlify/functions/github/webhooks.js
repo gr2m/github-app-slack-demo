@@ -1,5 +1,5 @@
 import { App, Octokit } from "octokit";
-import githubApp from "../../github-app";
+import githubApp from "../../../github-app";
 import pino from "pino";
 
 const log = pino();
