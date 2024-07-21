@@ -21,6 +21,7 @@
   },
   "devDependencies": {
     "ava": "^6.1.3",
+    "c8": "^10.1.2",
     "github-app-webhook-relay-polling": "^2.0.0",
     "netlify-cli": "^17.28.0",
     "pino-pretty": "^11.2.1",
