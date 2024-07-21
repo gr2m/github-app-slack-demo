@@ -4,6 +4,8 @@ import { App, ExpressReceiver } from "@slack/bolt";
 import { cleanEnv, str } from "envalid";
 import pino from "pino";
 
+import slackApp from "../../../slack-app";
+
 const env = cleanEnv(process.env, {
   SLACK_BOT_TOKEN: str(),
   SLACK_SIGNING_SECRET: str(),
@@ -21,6 +23,8 @@ const app = new App({
   token: `${env.SLACK_BOT_TOKEN}`,
   receiver: expressReceiver,
 });
+
+slackApp(app, slackLog);
 
 export async function handler(event, context) {
   let payload;
