@@ -8,7 +8,7 @@
 
 [dev]
     port = 8000
-    command = "node --env-file .env scripts/dev-server.js"
+    command = "node --env-file .env dev/server.js"
     # serve static files
     publish = "public"
 

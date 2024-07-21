@@ -7,7 +7,8 @@
   "main": "index.js",
   "scripts": {
     "dev": "npx netlify dev --framework=\"#static\"",
-    "register-github-app": "node scripts/register-github-app.js"
+    "register-github-app": "node dev/scripts/register-github-app.js",
+    "verify": "node --env-file .env dev/scripts/verify.js"
   },
   "license": "MIT",
   "dependencies": {
