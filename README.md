@@ -45,6 +45,12 @@ npm run scripts/register-github-app.js
 1. Click on "Install to Workspace" and grant the requested permissions
 1. Copy the "Bot User OAuth Token" and set it as the value for `SLACK_BOT_TOKEN` in your `.env` file.
 
+### Verify Credentials
+
+```
+npm run verify
+```
+
 ### Running the app
 
 ```
