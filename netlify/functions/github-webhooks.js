@@ -17,6 +17,7 @@ async function setupApp() {
   if (app) return app;
   if (setupAppError) throw setupAppError;
   try {
+    octokitLog.info("Setting up app");
     app = new App({
       appId: process.env.GITHUB_APP_ID,
       privateKey: process.env.GITHUB_APP_PRIVATE_KEY,
@@ -38,8 +39,12 @@ async function setupApp() {
       },
     });
 
+    app.log.info("Verifying app access");
+
     const { data: appInfo } = await app.octokit.request("GET /app");
     log.info({ slug: appInfo.slug, url: appInfo.html_url }, `Authenticated`);
+
+    app.log.info("registering webhook handlers");
 
     await githubApp(app);
 
@@ -70,6 +75,22 @@ export async function handler(event, context) {
     };
   }
 
+  const eventName =
+    event.headers["X-GitHub-Event"] || event.headers["x-github-event"];
+  const eventId =
+    event.headers["X-GitHub-Delivery"] || event.headers["x-github-delivery"];
+  const eventSignature =
+    event.headers["X-Hub-Signature-256"] ||
+    event.headers["x-hub-signature-256"];
+
+  app.log.info(
+    {
+      "event.name": eventName,
+      "event.id": eventId,
+    },
+    "Webhook received"
+  );
+
   try {
     let didTimeout = false;
     const timeout = setTimeout(() => {
@@ -80,13 +101,9 @@ export async function handler(event, context) {
 
     const app = await setupApp();
     await app.webhooks.verifyAndReceive({
-      id:
-        event.headers["X-GitHub-Delivery"] ||
-        event.headers["x-github-delivery"],
-      name: event.headers["X-GitHub-Event"] || event.headers["x-github-event"],
-      signature:
-        event.headers["X-Hub-Signature-256"] ||
-        event.headers["x-hub-signature-256"],
+      id: eventId,
+      name: eventName,
+      signature: eventSignature,
       payload: JSON.parse(event.body),
     });
     clearTimeout(timeout);
