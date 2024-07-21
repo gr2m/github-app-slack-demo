@@ -5,9 +5,6 @@ import { cleanEnv, str, num } from "envalid";
 import { App } from "octokit";
 import { pino } from "pino";
 
-import githubApp from "../../github-app.js";
-import slackApp from "../../slack-app.js";
-
 const env = cleanEnv(process.env, {
   // GitHub App credentials
   GITHUB_APP_ID: num(),
@@ -15,7 +12,6 @@ const env = cleanEnv(process.env, {
 
   // Slack App credentials
   SLACK_BOT_TOKEN: str(),
-  SLACK_APP_TOKEN: str(),
   SLACK_SIGNING_SECRET: str(),
 });
 const verifyLog = pino().child({ name: "verification" });
