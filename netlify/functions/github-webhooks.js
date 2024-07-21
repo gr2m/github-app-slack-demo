@@ -98,6 +98,7 @@ export async function handler(event, context) {
     {
       "event.name": eventName,
       "event.id": eventId,
+      "event.signature": eventSignature,
     },
     "Webhook received"
   );
@@ -120,10 +121,6 @@ export async function handler(event, context) {
     });
     clearTimeout(timeout);
 
-    app.webhooks.onError((error) => {
-      log.error(error, "Webhook error");
-    });
-
     if (didTimeout)
       return {
         statusCode: 202,
@@ -134,7 +131,7 @@ export async function handler(event, context) {
       statusCode: 200,
     };
   } catch (error) {
-    log.error(error, "Handler error");
+    octokitLog.error({ err: error }, "Handler error");
     clearTimeout(timeout);
 
     const err = Array.from(error.errors)[0];
