@@ -6,9 +6,8 @@
   "description": "A minimal GitHub App that integrates with Slack",
   "main": "index.js",
   "scripts": {
-    "dev": "node --env-file .env scripts/dev-server.js | pino-pretty --singleLine",
-    "register-github-app": "node scripts/register-github-app.js",
-    "functions": "netlify dev"
+    "dev": "npx netlify dev --framework=\"#static\"",
+    "register-github-app": "node scripts/register-github-app.js"
   },
   "license": "MIT",
   "dependencies": {
