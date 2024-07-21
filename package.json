@@ -9,7 +9,9 @@
     "dev": "netlify dev --framework=\"#static\"",
     "register-github-app": "node dev/scripts/register-github-app.js",
     "verify": "node --env-file .env dev/scripts/verify.js",
-    "test": "ava \"test/*.test.js\""
+    "test": "c8 ava \"test/*.test.js\"",
+    "coverage": "c8 report --reporter html",
+    "postcoverage": "open-cli coverage/index.html"
   },
   "license": "MIT",
   "dependencies": {
@@ -24,6 +26,7 @@
     "c8": "^10.1.2",
     "github-app-webhook-relay-polling": "^2.0.0",
     "netlify-cli": "^17.28.0",
+    "open-cli": "^8.0.0",
     "pino-pretty": "^11.2.1",
     "register-github-app": "^2.0.2"
   }
