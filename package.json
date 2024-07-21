@@ -11,11 +11,11 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@netlify/functions": "^2.7.0",
-    "@slack/bolt": "^3.18.0",
+    "@netlify/functions": "^2.8.1",
+    "@slack/bolt": "^3.19.0",
     "envalid": "^8.0.0",
     "octokit": "^4.0.2",
-    "pino": "^9.2.0"
+    "pino": "^9.3.1"
   },
   "devDependencies": {
     "github-app-webhook-relay-polling": "^2.0.0",
