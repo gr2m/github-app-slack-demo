@@ -2,6 +2,15 @@ import { App, Octokit } from "octokit";
 import githubApp from "../../github-app";
 import pino from "pino";
 
+const env = cleanEnv(process.env, {
+  // GitHub App credentials
+  GITHUB_APP_ID: num(),
+  GITHUB_APP_PRIVATE_KEY: str(),
+  GITHUB_OAUTH_CLIENT_ID: str(),
+  GITHUB_OAUTH_CLIENT_SECRET: str(),
+  GITHUB_WEBHOOK_SECRET: str(),
+});
+
 const log = pino();
 const octokitLog = log.child({ name: "octokit" });
 
@@ -19,14 +28,14 @@ async function setupApp() {
   try {
     octokitLog.info("Setting up app");
     app = new App({
-      appId: process.env.GITHUB_APP_ID,
-      privateKey: process.env.GITHUB_APP_PRIVATE_KEY,
+      appId: env.GITHUB_APP_ID,
+      privateKey: env.GITHUB_APP_PRIVATE_KEY.replace(/\\n/g, "\n"),
       oauth: {
-        clientId: process.env.GITHUB_OAUTH_CLIENT_ID,
-        clientSecret: process.env.GITHUB_OAUTH_CLIENT_SECRET,
+        clientId: env.GITHUB_OAUTH_CLIENT_ID,
+        clientSecret: env.GITHUB_OAUTH_CLIENT_SECRET,
       },
       webhooks: {
-        secret: process.env.GITHUB_WEBHOOK_SECRET,
+        secret: env.GITHUB_WEBHOOK_SECRET,
       },
       Octokit: Octokit.defaults({
         userAgent: "gr2m/github-app-slack-demo",
