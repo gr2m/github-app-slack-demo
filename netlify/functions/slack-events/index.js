@@ -6,7 +6,6 @@ import pino from "pino";
 
 const env = cleanEnv(process.env, {
   SLACK_BOT_TOKEN: str(),
-  SLACK_APP_TOKEN: str(),
   SLACK_SIGNING_SECRET: str(),
 });
 
