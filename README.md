@@ -24,6 +24,20 @@ A minimal GitHub App that integrates with Slack
 npm install
 ```
 
+### Tests
+
+Run tests with
+
+```
+npm test
+```
+
+Open a detailed coverage report with
+
+```
+npm run coverage
+```
+
 ### Register a GitHub App
 
 Run the following command and follow the instructions
