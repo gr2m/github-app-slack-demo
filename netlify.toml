@@ -11,3 +11,6 @@
     command = "node --env-file .env scripts/dev-server.js"
     # serve static files
     publish = "public"
+
+[functions]
+  node_bundler = "esbuild"
