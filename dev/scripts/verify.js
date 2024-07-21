@@ -34,7 +34,7 @@ console.log(`GitHub: Authenticated as ${appInfo.name} (${appInfo.html_url})`);
 await githubAppClient.octokit.request("GET /app/hook/deliveries", {
   per_page: 1,
 });
-console.log("Webhooks enabled");
+console.log("GitHub: Webhooks enabled");
 
 // start slack app
 // Initializes your app with your bot token and signing secret
@@ -44,4 +44,4 @@ const slackAppClient = new bolt.App({
 });
 
 await slackAppClient.client.auth.test();
-console.log("Slack App authenticated");
+console.log("Slack: App authenticated");
