@@ -91,13 +91,8 @@ export async function handler(event, context) {
     });
     clearTimeout(timeout);
 
-    app.webhooks.on("error", (error) => {
+    app.webhooks.onError((error) => {
       log.error(error, "Webhook error");
-    });
-
-    //TODO: Implement the event handler
-    app.webhooks.on("event", (event) => {
-      log.info({ event }, "Webhook received");
     });
 
     if (didTimeout)
