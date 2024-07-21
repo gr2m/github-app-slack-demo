@@ -3,7 +3,6 @@
 import bolt from "@slack/bolt";
 import { cleanEnv, str, num } from "envalid";
 import { App } from "octokit";
-import { pino } from "pino";
 
 const env = cleanEnv(process.env, {
   // GitHub App credentials
@@ -14,7 +13,6 @@ const env = cleanEnv(process.env, {
   SLACK_BOT_TOKEN: str(),
   SLACK_SIGNING_SECRET: str(),
 });
-const verifyLog = pino().child({ name: "verification" });
 
 // instantiate the Octokit app
 const githubAppClient = new App({
@@ -29,14 +27,14 @@ const githubAppClient = new App({
 // verify credentials and say hi
 // https://docs.github.com/rest/apps/apps#get-the-authenticated-app
 const { data: appInfo } = await githubAppClient.octokit.request("GET /app");
-verifyLog.info({ slug: appInfo.slug, url: appInfo.html_url }, `Authenticated`);
+console.log(`GitHub: Authenticated as ${appInfo.name} (${appInfo.html_url})`);
 
 // verify that webhooks are enabled
 // https://docs.github.com/en/rest/apps/webhooks#list-deliveries-for-an-app-webhook
 await githubAppClient.octokit.request("GET /app/hook/deliveries", {
   per_page: 1,
 });
-verifyLog.info("Webhooks enabled");
+console.log("Webhooks enabled");
 
 // start slack app
 // Initializes your app with your bot token and signing secret
@@ -46,4 +44,4 @@ const slackAppClient = new bolt.App({
 });
 
 await slackAppClient.client.auth.test();
-verifyLog.info("Slack App authenticated");
+console.log("Slack App authenticated");
