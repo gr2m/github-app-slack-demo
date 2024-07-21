@@ -117,7 +117,7 @@ export async function handler(event, context) {
       id: eventId,
       name: eventName,
       signature: eventSignature,
-      payload: JSON.parse(event.body),
+      payload: event.body,
     });
     clearTimeout(timeout);
 
