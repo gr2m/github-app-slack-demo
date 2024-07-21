@@ -83,7 +83,7 @@ export async function handler(event, context) {
     event.headers["X-Hub-Signature-256"] ||
     event.headers["x-hub-signature-256"];
 
-  app.log.info(
+  octokitLog.info(
     {
       "event.name": eventName,
       "event.id": eventId,
@@ -91,9 +91,10 @@ export async function handler(event, context) {
     "Webhook received"
   );
 
+  let timeout;
   try {
     let didTimeout = false;
-    const timeout = setTimeout(() => {
+    timeout = setTimeout(() => {
       didTimeout = true;
       response.statusCode = 202;
       response.end("still processing\n");
