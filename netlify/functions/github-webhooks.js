@@ -107,7 +107,7 @@ export async function handler(event, context) {
       };
 
     return {
-      statusCode: 202,
+      statusCode: 200,
     };
   } catch (error) {
     log.error(error, "Handler error");
