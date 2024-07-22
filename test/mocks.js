@@ -1,5 +1,8 @@
 import pino from "pino";
 
+// normalize stack traces for snapshot testing
+Error.prepareStackTrace = (error, stack) => `<error stack>`;
+
 export const DUMMY_PRIVATE_KEY = `-----BEGIN RSA PRIVATE KEY-----
 MIIEpAIBAAKCAQEA1c7+9z5Pad7OejecsQ0bu3aozN3tihPmljnnudb9G3HECdnH
 lWu2/a1gB9JW5TBQ+AVpum9Okx7KfqkfBKL9mcHgSL0yWMdjMfNOqNtrQqKlN4kE
