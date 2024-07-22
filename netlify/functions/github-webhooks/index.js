@@ -2,7 +2,7 @@ import { cleanEnv, str, num } from "envalid";
 import { App, Octokit } from "octokit";
 import pino from "pino";
 
-import githubApp from "../../../github-app";
+import githubApp from "../../../github-app.js";
 
 const env = cleanEnv(process.env, {
   // GitHub App credentials
@@ -13,23 +13,29 @@ const env = cleanEnv(process.env, {
   GITHUB_WEBHOOK_SECRET: str(),
 });
 
-const log = pino();
-const octokitLog = log.child({ name: "octokit" });
-
-let app;
-let setupAppError;
+// export as object for testing
+export const state = {
+  app: undefined,
+  githubWebhooksLog: pino().child({ function: "github-webhooks" }),
+  setupAppError: undefined,
+  App,
+  Octokit,
+  githubApp,
+  RESPONSE_TIMEOUT: 9000,
+};
 
 /**
  * Set up the GitHub App. If the app is already set up, return it.
  * @returns {Promise<App>}
  * @throws {Error}
  * */
-async function setupApp() {
-  if (app) return app;
-  if (setupAppError) throw setupAppError;
+export async function setupApp() {
+  if (state.setupAppError) throw state.setupAppError;
+  if (state.app) return state.app;
+
   try {
-    octokitLog.info("Setting up app");
-    app = new App({
+    state.githubWebhooksLog.info("Setting up app");
+    const app = new state.App({
       appId: env.GITHUB_APP_ID,
       privateKey: env.GITHUB_APP_PRIVATE_KEY.replace(/\\n/g, "\n"),
       oauth: {
@@ -39,30 +45,33 @@ async function setupApp() {
       webhooks: {
         secret: env.GITHUB_WEBHOOK_SECRET,
       },
-      Octokit: Octokit.defaults({
+      Octokit: state.Octokit.defaults({
         userAgent: "gr2m/github-app-slack-demo",
       }),
       log: {
-        debug: octokitLog.debug.bind(octokitLog),
-        info: octokitLog.info.bind(octokitLog),
-        warn: octokitLog.warn.bind(octokitLog),
-        error: octokitLog.error.bind(octokitLog),
+        debug: state.githubWebhooksLog.debug.bind(state.githubWebhooksLog),
+        info: state.githubWebhooksLog.info.bind(state.githubWebhooksLog),
+        warn: state.githubWebhooksLog.warn.bind(state.githubWebhooksLog),
+        error: state.githubWebhooksLog.error.bind(state.githubWebhooksLog),
       },
     });
 
     app.log.info("Verifying app access");
 
     const { data: appInfo } = await app.octokit.request("GET /app");
-    log.info({ slug: appInfo.slug, url: appInfo.html_url }, `Authenticated`);
+    app.log.info(
+      { slug: appInfo.slug, url: appInfo.html_url },
+      `Authenticated`
+    );
 
     app.log.info("registering webhook handlers");
 
-    await githubApp(app);
+    await state.githubApp(app);
 
-    return app;
+    state.app = app;
   } catch (error) {
-    log.error(error, "Failed to set up app");
-    setupAppError = error;
+    state.githubWebhooksLog.error(error, "Failed to set up app");
+    state.setupAppError = error;
     throw error;
   }
 }
@@ -71,10 +80,16 @@ async function setupApp() {
  * Netlify function to handle webhook event requests from GitHub
  *
  * @param {import("@netlify/functions").HandlerEvent} event
- * @param {import("@netlify/functions").HandlerContext} context
  */
-export async function handler(event, context) {
+export async function handler(event) {
   if (event.httpMethod !== "POST") {
+    state.githubWebhooksLog.info(
+      {
+        method: event.httpMethod,
+      },
+      "Method not allowed"
+    );
+
     return {
       /* The `405` status code in HTTP indicates that the method used in the request is not
       allowed for the specified resource. In the provided code snippet, when the
@@ -86,15 +101,11 @@ export async function handler(event, context) {
     };
   }
 
-  const eventName =
-    event.headers["X-GitHub-Event"] || event.headers["x-github-event"];
-  const eventId =
-    event.headers["X-GitHub-Delivery"] || event.headers["x-github-delivery"];
-  const eventSignature =
-    event.headers["X-Hub-Signature-256"] ||
-    event.headers["x-hub-signature-256"];
+  const eventName = event.headers["x-github-event"];
+  const eventId = event.headers["x-github-delivery"];
+  const eventSignature = event.headers["x-hub-signature-256"];
 
-  octokitLog.info(
+  state.githubWebhooksLog.info(
     {
       "event.name": eventName,
       "event.id": eventId,
@@ -108,12 +119,10 @@ export async function handler(event, context) {
     let didTimeout = false;
     timeout = setTimeout(() => {
       didTimeout = true;
-      response.statusCode = 202;
-      response.end("still processing\n");
-    }, 9000).unref();
+    }, state.RESPONSE_TIMEOUT).unref();
 
-    const app = await setupApp();
-    await app.webhooks.verifyAndReceive({
+    await setupApp();
+    await state.app.webhooks.verifyAndReceive({
       id: eventId,
       name: eventName,
       signature: eventSignature,
@@ -131,13 +140,23 @@ export async function handler(event, context) {
       statusCode: 200,
     };
   } catch (error) {
-    octokitLog.error({ err: error }, "Handler error");
+    // app.webhooks.verifyAndReceive throws an AggregateError
+    if (!Array.isArray(error.errors)) {
+      state.githubWebhooksLog.error({ err: error }, "Handler error");
+
+      return {
+        statusCode: 500,
+        body: "Error: An unexpected error occurred",
+      };
+    }
+
+    state.githubWebhooksLog.error({ err: error }, "Handler error");
     clearTimeout(timeout);
 
     const err = Array.from(error.errors)[0];
     const errorMessage = err.message
       ? `${err.name}: ${err.message}`
-      : "Error: An Unspecified error occurred";
+      : "Error: An unexpected error occurred";
     const statusCode = typeof err.status !== "undefined" ? err.status : 500;
 
     return {
