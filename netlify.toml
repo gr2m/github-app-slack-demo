@@ -4,7 +4,13 @@
 [[redirects]]
     from = "/api/*"
     to = "/.netlify/functions/:splat"
-    status= 200
+    status = 200
 
 [dev]
-    port= 8000
+    port = 8000
+    command = "node --env-file .env dev/server.js"
+    # serve static files
+    publish = "public"
+
+[functions]
+  node_bundler = "esbuild"
