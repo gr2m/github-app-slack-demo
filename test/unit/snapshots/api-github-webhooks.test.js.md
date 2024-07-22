@@ -1,4 +1,4 @@
-# Snapshot report for `test/api-github-webhooks.test.js`
+# Snapshot report for `test/unit/api-github-webhooks.test.js`
 
 The actual snapshot is saved in `api-github-webhooks.test.js.snap`.
 

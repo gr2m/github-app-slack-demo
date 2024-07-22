@@ -2,7 +2,7 @@ import test from "ava";
 import fetchMock from "fetch-mock";
 import { Octokit } from "octokit";
 
-import { mockLog, DUMMY_PRIVATE_KEY } from "./mocks.js";
+import { mockLog, DUMMY_PRIVATE_KEY } from "../mocks.js";
 
 const TestOctokit = Octokit.defaults({
   throttle: { enabled: false },
@@ -18,7 +18,7 @@ test.before(async (t) => {
 
   // we import dynamically as we need to set environment variables before importing
   const { state, setupApp, handler } = await import(
-    "../netlify/functions/github-webhooks/index.js"
+    "../../netlify/functions/github-webhooks/index.js"
   );
 
   t.context.state = state;
