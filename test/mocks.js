@@ -1,3 +1,5 @@
+import pino from "pino";
+
 export const DUMMY_PRIVATE_KEY = `-----BEGIN RSA PRIVATE KEY-----
 MIIEpAIBAAKCAQEA1c7+9z5Pad7OejecsQ0bu3aozN3tihPmljnnudb9G3HECdnH
 lWu2/a1gB9JW5TBQ+AVpum9Okx7KfqkfBKL9mcHgSL0yWMdjMfNOqNtrQqKlN4kE
@@ -50,4 +52,32 @@ export function mockLog(logger) {
   logger.child = () => logger;
 
   return logs;
+}
+
+/**
+ * @returns {[import('pino').Logger, unknown[]]}
+ */
+export function createMockLoggerAndLogs() {
+  const logs = [];
+  const logger = pino(
+    {
+      serializers: {},
+    },
+    {
+      write: (line) => {
+        const {
+          // ignore properties that change
+          pid,
+          time,
+          hostname,
+          // user-provided data
+          ...data
+        } = JSON.parse(line.trim());
+
+        logs.push(data);
+      },
+    }
+  );
+
+  return [logger, logs];
 }
