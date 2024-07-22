@@ -4,7 +4,7 @@ import { App, ExpressReceiver } from "@slack/bolt";
 import { cleanEnv, str } from "envalid";
 import pino from "pino";
 
-import slackApp from "../../../slack-app";
+import slackApp from "../../../slack-app.js";
 
 const env = cleanEnv(process.env, {
   SLACK_BOT_TOKEN: str(),

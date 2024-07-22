@@ -1,7 +1,7 @@
 import pino from "pino";
 
 // export for testing
-export const healthLog = pino().child({ name: "health" });
+export const healthLog = pino().child({ function: "health" });
 
 /**
  * Netlify function for health check
