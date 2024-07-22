@@ -9,7 +9,7 @@
     "dev": "netlify dev --framework=\"#static\"",
     "register-github-app": "node dev/scripts/register-github-app.js",
     "verify": "node --env-file .env dev/scripts/verify.js",
-    "test": "c8 ava \"test/**/*.test.js\"",
+    "test": "c8 --100 ava \"test/**/*.test.js\"",
     "coverage": "c8 report --reporter html",
     "postcoverage": "open-cli coverage/index.html"
   },
