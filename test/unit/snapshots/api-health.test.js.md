@@ -1,4 +1,4 @@
-# Snapshot report for `test/api-health.test.js`
+# Snapshot report for `test/unit/api-health.test.js`
 
 The actual snapshot is saved in `api-health.test.js.snap`.
 
