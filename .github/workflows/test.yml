@@ -7,7 +7,7 @@ on:
     types: [opened, synchronize]
 
 jobs:
-  test_matrix:
+  test:
     runs-on: ubuntu-latest
 
     steps:
