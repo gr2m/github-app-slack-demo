@@ -35,6 +35,5 @@ export default async function githubApp(app) {
   // handle webhook error event
   app.webhooks.onError((error) => {
     app.log.error(error, "An error occurred in a webhook handler");
-    throw error;
   });
 }
