@@ -6,7 +6,13 @@
  */
 export default async function slackApp(app, log) {
   app.event("app_home_opened", async ({ event, client, context }) => {
-    log.info("app_home_opened event received");
+    const eventLog = log.child({
+      userId: context.userId,
+      teamId: context.teamId,
+      enterpriseId: context.enterpriseId,
+      isEnterpriseInstall: context.isEnterpriseInstall,
+    });
+    eventLog.info("app_home_opened event received");
 
     // view.publish is the method that your app uses to push a view to the Home tab
     await client.views.publish({
@@ -24,7 +30,7 @@ export default async function slackApp(app, log) {
             type: "section",
             text: {
               type: "mrkdwn",
-              text: "*Welcome to your _App's Home tab_* :tada:",
+              text: "*Hello, GitHub!* :tada:",
             },
           },
           {
@@ -34,20 +40,8 @@ export default async function slackApp(app, log) {
             type: "section",
             text: {
               type: "mrkdwn",
-              text: "This button won't do much for now but you can set up a listener for it using the `actions()` method and passing its unique `action_id`. See an example in the `examples` folder within your Bolt app.",
+              text: "TODO: Put something useful in here",
             },
-          },
-          {
-            type: "actions",
-            elements: [
-              {
-                type: "button",
-                text: {
-                  type: "plain_text",
-                  text: "Click me!",
-                },
-              },
-            ],
           },
         ],
       },
