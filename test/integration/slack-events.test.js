@@ -4,7 +4,7 @@ import Bolt from "@slack/bolt";
 import test from "ava";
 import { App as OctokitApp, Octokit } from "octokit";
 
-import main from "../../app.js";
+import main from "../../main.js";
 import { createMockLoggerAndLogs, DUMMY_PRIVATE_KEY } from "../mocks.js";
 
 const TestOctokit = Octokit.defaults({

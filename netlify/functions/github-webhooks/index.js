@@ -3,7 +3,7 @@ import { cleanEnv, str } from "envalid";
 import { App as OctokitApp, Octokit } from "octokit";
 import pino from "pino";
 
-import main from "../../../app.js";
+import main from "../../../main.js";
 
 const env = cleanEnv(process.env, {
   // GitHub App credentials
