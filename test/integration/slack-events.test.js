@@ -616,7 +616,9 @@ test("/hello-github subscribe monalisa/smile - existing variable", async (t) => 
     },
   });
   // mock webhook verification
-  boltApp.authorize = async () => ({});
+  boltApp.authorize = async () => ({
+    botId: "B12345678",
+  });
 
   const mock = new AxiosMockAdapter(boltApp.axios, {
     onNoMatch: "throwException",

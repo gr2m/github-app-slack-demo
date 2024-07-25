@@ -84,7 +84,6 @@ export async function setupApp() {
     await state.main({ octokitApp, boltApp });
 
     state.octokitApp = octokitApp;
-    state.octokitApp = boltApp;
   } catch (error) {
     state.githubWebhooksLog.error(
       error,

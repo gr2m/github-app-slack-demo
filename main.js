@@ -18,27 +18,83 @@ export default async function main({ octokitApp, boltApp }) {
 
     octokit.log.info(
       {
-        issue: payload.issue.html_url,
-        title: payload.issue.title,
+        owner,
+        repo,
+        issueNumber,
       },
       "An issue was opened"
     );
 
-    // add comment to the issue
-    // https://docs.github.com/rest/issues/comments#create-an-issue-comment
-    const { data: comment } = await octokit.request(
-      "POST /repos/{owner}/{repo}/issues/{issue_number}/comments",
+    // get the subscription settings
+    const {
+      data: { value },
+    } = await octokit
+      .request("GET /repos/{owner}/{repo}/actions/variables/{name}", {
+        owner,
+        repo,
+        name: `HELLO_SLACK_SUBSCRIPTIONS`,
+      })
+      .catch(() => ({ data: { value: false } }));
+
+    if (value === false) {
+      octokit.log.info(
+        {
+          owner,
+          repo,
+        },
+        "No subscriptions found"
+      );
+      return;
+    }
+
+    const subscriptions = JSON.parse(value);
+
+    // get slack app id
+    const result = await boltApp.client.auth.test();
+    const appSubscription = subscriptions[result.bot_id];
+
+    if (!appSubscription) {
+      octokit.log.info(
+        {
+          owner,
+          repo,
+          appId: result.bot_id,
+          subscriptionAppIds: Object.keys(subscriptions),
+        },
+        "Subscription not found for app"
+      );
+      return;
+    }
+
+    // make sure subscription is for current installation
+    if (appSubscription.githubInstallationId !== payload.installation.id) {
+      octokit.log.info(
+        {
+          owner,
+          repo,
+          installationId: payload.installation.id,
+          subscriptionInstallationId: appSubscription.githubInstallationId,
+        },
+        "Subscription not for current installation"
+      );
+      return;
+    }
+
+    // send message to slack
+    const message = `New issue opened: ${payload.issue.html_url}`;
+    await boltApp.client.chat.postMessage({
+      channel: appSubscription.slackChannelId,
+      text: message,
+    });
+
+    octokit.log.info(
       {
         owner,
         repo,
-        issue_number: issueNumber,
-        body: "Hello, world! 🌍",
-      }
-    );
-
-    octokit.log.info(
-      { comment: comment.html_url },
-      "Added a comment to an issue"
+        issueNumber,
+        slackChannelId: appSubscription.slackChannelId,
+      },
+      "Message sent to slack"
     );
   });
 
@@ -86,7 +142,7 @@ export default async function main({ octokitApp, boltApp }) {
 
   boltApp.command(
     "/hello-github",
-    async ({ command, ack, respond, logger }) => {
+    async ({ command, ack, respond, logger, context }) => {
       const [subcommand, repository] = command.text.split(/[+ ]+/g);
 
       if (subcommand === "help") {
@@ -147,9 +203,9 @@ export default async function main({ octokitApp, boltApp }) {
         const value = data.value;
         if (value === false) {
           // create the variable
-          const slackAppId = command.api_app_id;
+          const botId = context.botId;
           const subscriptions = {
-            [slackAppId]: {
+            [botId]: {
               slackChannelId: command.channel_id,
               githubInstallationId: installationId,
             },
@@ -170,7 +226,7 @@ export default async function main({ octokitApp, boltApp }) {
             {
               owner,
               repo,
-              slackAppId,
+              botId,
               slackChannelId: command.channel_id,
               githubInstallationId: installationId,
             },
@@ -179,8 +235,8 @@ export default async function main({ octokitApp, boltApp }) {
         } else {
           // update the variable
           const subscriptions = JSON.parse(value);
-          const slackAppId = command.api_app_id;
-          subscriptions[slackAppId] = {
+          const botId = context.botId;
+          subscriptions[botId] = {
             slackChannelId: command.channel_id,
             githubInstallationId: installationId,
           };
@@ -200,7 +256,7 @@ export default async function main({ octokitApp, boltApp }) {
             {
               owner,
               repo,
-              slackAppId,
+              botId,
               slackChannelId: command.channel_id,
               githubInstallationId: installationId,
             },
