@@ -8,14 +8,23 @@ features:
   bot_user:
     display_name: Hello Github Local (<your github login>)
     always_online: false
+slash_commands:
+  - command: /hello-github
+    description: Subscribe to GitHub events
+    usage_hint: subscribe <owner>/<repo>
+    should_escape: false
 oauth_config:
   scopes:
     bot:
       - chat:write
+      - commands
 settings:
   event_subscriptions:
+    request_url: https://placeholder--github-app-slack-demo.netlify.live/api/slack-events
     bot_events:
       - app_home_opened
+  interactivity:
+    is_enabled: true
   org_deploy_enabled: false
-  socket_mode_enabled: true
+  socket_mode_enabled: false
   token_rotation_enabled: false

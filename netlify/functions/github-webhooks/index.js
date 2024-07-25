@@ -1,41 +1,47 @@
-import { cleanEnv, str, num } from "envalid";
-import { App, Octokit } from "octokit";
+import Bolt from "@slack/bolt";
+import { cleanEnv, str } from "envalid";
+import { App as OctokitApp, Octokit } from "octokit";
 import pino from "pino";
 
-import githubApp from "../../../github-app.js";
+import main from "../../../main.js";
 
 const env = cleanEnv(process.env, {
   // GitHub App credentials
-  GITHUB_APP_ID: num(),
+  GITHUB_APP_ID: str(),
   GITHUB_APP_PRIVATE_KEY: str(),
   GITHUB_OAUTH_CLIENT_ID: str(),
   GITHUB_OAUTH_CLIENT_SECRET: str(),
   GITHUB_WEBHOOK_SECRET: str(),
+
+  // Slack App credentials
+  SLACK_BOT_TOKEN: str(),
+  SLACK_SIGNING_SECRET: str(),
 });
 
 // export as object for testing
 export const state = {
-  app: undefined,
-  githubWebhooksLog: pino().child({ function: "github-webhooks" }),
+  octokitApp: undefined,
+  boltApp: undefined,
   setupAppError: undefined,
-  App,
+  githubWebhooksLog: pino().child({ function: "github-webhooks" }),
+  OctokitApp,
   Octokit,
-  githubApp,
+  main,
   RESPONSE_TIMEOUT: 9000,
 };
 
 /**
  * Set up the GitHub App. If the app is already set up, return it.
- * @returns {Promise<App>}
+ * @returns {Promise<OctokitApp>}
  * @throws {Error}
  * */
 export async function setupApp() {
   if (state.setupAppError) throw state.setupAppError;
-  if (state.app) return state.app;
+  if (state.octokitApp) return state.octokitApp;
 
   try {
-    state.githubWebhooksLog.info("Setting up app");
-    const app = new state.App({
+    state.githubWebhooksLog.info("Set up Octokit app");
+    const octokitApp = new state.OctokitApp({
       appId: env.GITHUB_APP_ID,
       privateKey: env.GITHUB_APP_PRIVATE_KEY.replace(/\\n/g, "\n"),
       oauth: {
@@ -56,21 +62,33 @@ export async function setupApp() {
       },
     });
 
-    app.log.info("Verifying app access");
+    state.githubWebhooksLog.info("Set up Bolt app");
+    const boltApp = new Bolt.App({
+      signingSecret: `${env.SLACK_SIGNING_SECRET}`,
+      token: `${env.SLACK_BOT_TOKEN}`,
+      logger: {
+        debug: state.githubWebhooksLog.debug.bind(state.githubWebhooksLog),
+        info: state.githubWebhooksLog.info.bind(state.githubWebhooksLog),
+        warn: state.githubWebhooksLog.warn.bind(state.githubWebhooksLog),
+        error: state.githubWebhooksLog.error.bind(state.githubWebhooksLog),
+        getLevel: () => state.githubWebhooksLog.level,
+        /* c8 ignore next 4 */
+        setLevel: (level) => {
+          state.githubWebhooksLog.level = level;
+        },
+        setName: (name) => {},
+      },
+    });
 
-    const { data: appInfo } = await app.octokit.request("GET /app");
-    app.log.info(
-      { slug: appInfo.slug, url: appInfo.html_url },
-      `Authenticated`
-    );
+    octokitApp.log.info("Register Octokit and Bolt handlers");
+    await state.main({ octokitApp, boltApp });
 
-    app.log.info("registering webhook handlers");
-
-    await state.githubApp(app);
-
-    state.app = app;
+    state.octokitApp = octokitApp;
   } catch (error) {
-    state.githubWebhooksLog.error(error, "Failed to set up app");
+    state.githubWebhooksLog.error(
+      error,
+      "Failed to set up Octokit and Slack clients"
+    );
     state.setupAppError = error;
     throw error;
   }
@@ -122,7 +140,7 @@ export async function handler(event) {
     }, state.RESPONSE_TIMEOUT).unref();
 
     await setupApp();
-    await state.app.webhooks.verifyAndReceive({
+    await state.octokitApp.webhooks.verifyAndReceive({
       id: eventId,
       name: eventName,
       signature: eventSignature,
