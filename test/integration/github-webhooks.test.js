@@ -87,7 +87,7 @@ test("issues.opened event", async (t) => {
     };
   };
 
-  main({ octokitApp, boltApp });
+  main({ octokitApp, boltApp, settings: { slackCommand: "/hello-github" } });
 
   // Act
   await octokitApp.webhooks.receive({
@@ -165,7 +165,7 @@ test("issues.opened event - subscription not found", async (t) => {
     },
   });
 
-  main({ octokitApp, boltApp });
+  main({ octokitApp, boltApp, settings: { slackCommand: "/hello-github" } });
 
   // Act
   await octokitApp.webhooks.receive({
@@ -263,7 +263,7 @@ test("issues.opened event - subscription found but not for app", async (t) => {
     };
   };
 
-  main({ octokitApp, boltApp });
+  main({ octokitApp, boltApp, settings: { slackCommand: "/hello-github" } });
 
   // Act
   await octokitApp.webhooks.receive({
@@ -361,7 +361,7 @@ test("issues.opened event - subscription found but not for installation", async 
     };
   };
 
-  main({ octokitApp, boltApp });
+  main({ octokitApp, boltApp, settings: { slackCommand: "/hello-github" } });
 
   // Act
   await octokitApp.webhooks.receive({
@@ -434,7 +434,7 @@ test("error in event handler", async (t) => {
     throw new Error("error from event handler");
   });
 
-  main({ octokitApp, boltApp });
+  main({ octokitApp, boltApp, settings: { slackCommand: "/hello-github" } });
 
   // Act
   await t.throwsAsync(() =>
