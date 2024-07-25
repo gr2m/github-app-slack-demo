@@ -1,8 +1,11 @@
+// @ts-check
+
+import Bolt from "@slack/bolt";
 import test from "ava";
 import fetchMock from "fetch-mock";
-import { App, Octokit } from "octokit";
+import { App as OctokitApp, Octokit } from "octokit";
 
-import githubApp from "../../github-app.js";
+import main from "../../app.js";
 import { createMockLoggerAndLogs, DUMMY_PRIVATE_KEY } from "../mocks.js";
 
 const TestOctokit = Octokit.defaults({
@@ -28,7 +31,7 @@ test("issues.opened event", async (t) => {
         return true;
       }
     );
-  const app = new App({
+  const octokitApp = new OctokitApp({
     appId: 1,
     privateKey: DUMMY_PRIVATE_KEY,
     webhooks: {
@@ -46,11 +49,26 @@ test("issues.opened event", async (t) => {
       debug: logger.debug.bind(logger),
     },
   });
+  const boltApp = new Bolt.App({
+    signingSecret: "",
+    token: "",
+    logger: {
+      debug: logger.debug.bind(logger),
+      info: logger.info.bind(logger),
+      warn: logger.warn.bind(logger),
+      error: logger.error.bind(logger),
+      getLevel: () => "debug",
+      setLevel: (level) => {
+        logger.level = level;
+      },
+      setName: (name) => {},
+    },
+  });
 
-  githubApp(app);
+  main({ octokitApp, boltApp });
 
   // Act
-  await app.webhooks.receive({
+  await octokitApp.webhooks.receive({
     id: "1",
     name: "issues",
     payload: {
@@ -79,7 +97,7 @@ test("error in event handler", async (t) => {
   // Arrange
   const [logger, logs] = createMockLoggerAndLogs();
   const mock = fetchMock.sandbox();
-  const app = new App({
+  const octokitApp = new OctokitApp({
     appId: 1,
     privateKey: DUMMY_PRIVATE_KEY,
     webhooks: {
@@ -97,16 +115,31 @@ test("error in event handler", async (t) => {
       debug: logger.debug.bind(logger),
     },
   });
+  const boltApp = new Bolt.App({
+    signingSecret: "",
+    token: "",
+    logger: {
+      debug: logger.debug.bind(logger),
+      info: logger.info.bind(logger),
+      warn: logger.warn.bind(logger),
+      error: logger.error.bind(logger),
+      getLevel: () => "debug",
+      setLevel: (level) => {
+        logger.level = level;
+      },
+      setName: (name) => {},
+    },
+  });
 
-  app.webhooks.on("issues", async () => {
+  octokitApp.webhooks.on("issues", async () => {
     throw new Error("error from event handler");
   });
 
-  githubApp(app);
+  main({ octokitApp, boltApp });
 
   // Act
   await t.throwsAsync(() =>
-    app.webhooks.receive({
+    octokitApp.webhooks.receive({
       id: "1",
       name: "issues",
       payload: {},

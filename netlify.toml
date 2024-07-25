@@ -1,5 +1,6 @@
+# Settings for the [build] key are global and are applied to
+# all deploy contexts unless overridden by a context-specific setting.
 [build]
-    functions = "netlify/functions"
 
 [[redirects]]
     from = "/api/*"
@@ -8,9 +9,8 @@
 
 [dev]
     port = 8000
-    command = "node --env-file .env dev/server.js"
-    # serve static files
     publish = "public"
+    command = "node dev/server.js"
 
 [functions]
-  node_bundler = "esbuild"
+    node_bundler = "esbuild"

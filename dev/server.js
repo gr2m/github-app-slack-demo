@@ -1,76 +1,177 @@
 // @ts-check
 
-import bolt from "@slack/bolt";
-import { cleanEnv, str, num } from "envalid";
-import AppWebhookRelay from "github-app-webhook-relay-polling";
-import { App, Octokit } from "octokit";
-import { pino } from "pino";
+import { readFile, writeFile } from "node:fs/promises";
 
-import githubApp from "../github-app.js";
-import slackApp from "../slack-app.js";
+import { cleanEnv, str, num, makeValidator } from "envalid";
+import { App as GithubApp, Octokit } from "octokit";
+import Bolt from "@slack/bolt";
+import chalk from "chalk";
+
+export const DEV_SERVER_LOG_PREFIX = `${chalk.blueBright("◈")}`;
+
+/**
+ * @param {string} url
+ * @returns {string}
+ */
+const isNetlifyLiveUrl = makeValidator((url) => {
+  const { hostname } = new URL(url);
+  if (hostname.endsWith(".netlify.live")) return url;
+
+  throw new Error(
+    `Must be set to a *.netlify.live url. Start with "netlify dev --live"`
+  );
+});
 
 const env = cleanEnv(process.env, {
   // GitHub App credentials
   GITHUB_APP_ID: num(),
   GITHUB_APP_PRIVATE_KEY: str(),
+  GITHUB_WEBHOOK_SECRET: str(),
 
   // Slack App credentials
+  SLACK_APP_ID: str(),
   SLACK_BOT_TOKEN: str(),
-  SLACK_APP_TOKEN: str(),
   SLACK_SIGNING_SECRET: str(),
-});
-const log = pino();
-const octokitLog = log.child({ name: "octokit" });
+  SLACK_CONFIGURATION_REFRESH_TOKEN: str(),
 
-// instantiate the Octokit app
-const githubAppClient = new App({
-  appId: env.GITHUB_APP_ID,
-  privateKey: env.GITHUB_APP_PRIVATE_KEY,
-  webhooks: {
-    // value does not matter, but has to be set.
-    secret: "secret",
-  },
-  Octokit: Octokit.defaults({
-    userAgent: "gr2m/github-app-slack-demo",
-  }),
-  // TODO: pre-binding should not be necessary, seems like a new bug in Octokit
-  log: {
-    debug: octokitLog.debug.bind(octokitLog),
-    info: octokitLog.info.bind(octokitLog),
-    warn: octokitLog.warn.bind(octokitLog),
-    error: octokitLog.error.bind(octokitLog),
-  },
+  // netlify environment variables
+  NETLIFY_LOCAL: str({ choices: ["true"] }),
+  URL: isNetlifyLiveUrl(),
 });
 
-// verify credentials and say hi
-// https://docs.github.com/rest/apps/apps#get-the-authenticated-app
-const { data: appInfo } = await githubAppClient.octokit.request("GET /app");
-log.info({ slug: appInfo.slug, url: appInfo.html_url }, `Authenticated`);
+main();
 
-// register GitHub webhook handlers
-await githubApp(githubAppClient);
+// keep the process running
+setTimeout(() => {}, 151_200_000);
 
-// receive webhooks by pulling
-const relay = new AppWebhookRelay({
-  app: githubAppClient,
-});
+async function main() {
+  // instantiate the Octokit app
+  const githubAppClient = new GithubApp({
+    appId: env.GITHUB_APP_ID,
+    privateKey: env.GITHUB_APP_PRIVATE_KEY,
+    webhooks: {
+      // value does not matter, but has to be set.
+      secret: "secret",
+    },
+    Octokit: Octokit.defaults({
+      userAgent: "gr2m/github-app-slack-demo",
+    }),
+  });
 
-relay.on("error", (error) => {
-  console.log("error: %s", error);
-});
+  // verify credentials and say hi
+  // https://docs.github.com/rest/apps/apps#get-the-authenticated-app
+  const { data: appInfo } = await githubAppClient.octokit.request("GET /app");
+  console.log(
+    `${DEV_SERVER_LOG_PREFIX} Authenticated as GitHub App ${chalk.bold.whiteBright(
+      appInfo.slug
+    )} (${chalk.underline(appInfo.html_url)}).`
+  );
 
-relay.start();
+  // update the webhook url
+  // https://docs.github.com/rest/apps/webhooks#update-a-webhook-configuration-for-an-app
+  const githubWebhookUrl = `${env.URL}/api/github-webhooks`;
+  await githubAppClient.octokit.request("PATCH /app/hook/config", {
+    data: {
+      url: githubWebhookUrl,
+      secret: env.GITHUB_WEBHOOK_SECRET,
+    },
+  });
+  console.log(
+    `${DEV_SERVER_LOG_PREFIX} Updated GitHub App webhook URL to ${chalk.underline(
+      githubWebhookUrl
+    )}.`
+  );
 
-// start slack app
-// Initializes your app with your bot token and signing secret
-const slackAppClient = new bolt.App({
-  token: env.SLACK_BOT_TOKEN,
-  appToken: env.SLACK_APP_TOKEN,
-  signingSecret: env.SLACK_SIGNING_SECRET,
-  socketMode: true,
-});
+  // start slack app
+  // Initializes your app with your bot token and signing secret
+  const slackApp = new Bolt.App({
+    token: env.SLACK_BOT_TOKEN,
+    signingSecret: env.SLACK_SIGNING_SECRET,
+  });
 
-await slackAppClient.start();
-log.info("⚡️ Bolt app is running!");
+  const envFileContents = await readFile(".env", "utf8");
+  const slackEventsUrl = `${env.URL}/api/slack-events`;
 
-slackApp(slackAppClient, log);
+  try {
+    const result = await slackApp.client.tooling.tokens.rotate({
+      refresh_token: env.SLACK_CONFIGURATION_REFRESH_TOKEN,
+    });
+
+    const configurationAccessToken = String(result.token);
+
+    // update value of SLACK_CONFIGURATION_REFRESH_TOKEN in .env file
+    const newEnvFileContents = envFileContents.replace(
+      /SLACK_CONFIGURATION_REFRESH_TOKEN=.*/,
+      `SLACK_CONFIGURATION_REFRESH_TOKEN=${result.refresh_token}`
+    );
+    await writeFile(".env", newEnvFileContents);
+    console.log(
+      `${DEV_SERVER_LOG_PREFIX} Updated ${chalk.bold.whiteBright(
+        "SLACK_CONFIGURATION_REFRESH_TOKEN"
+      )} in ${chalk.bold.whiteBright(".env")}.`
+    );
+
+    const { manifest } = await slackApp.client.apps.manifest.export({
+      app_id: env.SLACK_APP_ID,
+      token: configurationAccessToken,
+    });
+
+    // update the Slack Request URL if needed
+    if (
+      manifest.settings.event_subscriptions.request_url === slackEventsUrl &&
+      manifest.features.slash_commands[0].url === slackEventsUrl
+    ) {
+      console.log(
+        `${DEV_SERVER_LOG_PREFIX} Slack Request URL is already set to ${chalk.bold.greenBright(
+          slackEventsUrl
+        )}.`
+      );
+      return;
+    }
+
+    manifest.settings.event_subscriptions.request_url = slackEventsUrl;
+    manifest.features.slash_commands[0].url = slackEventsUrl;
+
+    await slackApp.client.apps.manifest.update({
+      app_id: env.SLACK_APP_ID,
+      manifest,
+      token: configurationAccessToken,
+    });
+    console.log(
+      `${DEV_SERVER_LOG_PREFIX} Updated Slack Request URL to ${chalk.bold.whiteBright(
+        slackEventsUrl
+      )}.`
+    );
+  } catch (error) {
+    if (error?.data?.error === "invalid_refresh_token") {
+      console.log(
+        `${DEV_SERVER_LOG_PREFIX} ${chalk.bold.redBright(
+          "Invalid refresh token"
+        )}. Get a valid token at ${chalk.underline(
+          "https://api.slack.com/reference/manifests#config-tokens"
+        )}, then update ${chalk.bold.whiteBright(
+          "SLACK_CONFIGURATION_REFRESH_TOKEN"
+        )} in ${chalk.bold.whiteBright(".env")}.`
+      );
+
+      process.exit();
+    }
+
+    if (error?.data?.error === "no_permission") {
+      console.log(
+        `${DEV_SERVER_LOG_PREFIX} ${chalk.bold.yellowBright(
+          "Slack Request URL could not be updated"
+        )}. Set it to ${chalk.bold.whiteBright(
+          slackEventsUrl
+        )} at ${chalk.underline(
+          `https://api.slack.com/apps/${env.SLACK_APP_ID}/event-subscriptions`
+        )} and ${chalk.underline(
+          `https://api.slack.com/apps/${env.SLACK_APP_ID}/slash-commands`
+        )}.`
+      );
+      return;
+    }
+
+    throw error;
+  }
+}

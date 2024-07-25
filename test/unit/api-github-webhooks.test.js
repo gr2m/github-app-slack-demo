@@ -1,5 +1,4 @@
 import test from "ava";
-import fetchMock from "fetch-mock";
 import { Octokit } from "octokit";
 
 import { mockLog, DUMMY_PRIVATE_KEY } from "../mocks.js";
@@ -15,6 +14,8 @@ test.before(async (t) => {
   process.env.GITHUB_OAUTH_CLIENT_ID = "<client-id>";
   process.env.GITHUB_OAUTH_CLIENT_SECRET = "<client-secret>";
   process.env.GITHUB_WEBHOOK_SECRET = "<webhook-secret>";
+  process.env.SLACK_BOT_TOKEN = "<slack-bot-token>";
+  process.env.SLACK_SIGNING_SECRET = "<slack-signing-secret>";
 
   // we import dynamically as we need to set environment variables before importing
   const { state, setupApp, handler } = await import(
@@ -28,9 +29,10 @@ test.before(async (t) => {
 
 test.beforeEach(async (t) => {
   // reset state
-  t.context.state.app = undefined;
+  t.context.state.octokitApp = undefined;
   t.context.state.setupAppError = undefined;
-  t.context.state.githubApp = () => {};
+  t.context.state.main = () => {};
+  t.context.state.Octokit = TestOctokit;
 });
 
 // we have to run tests sequentially as we are mutating global state
@@ -38,17 +40,11 @@ test.serial("setupApp", async (t) => {
   const { state, setupApp } = t.context;
   // arrange
   const logs = mockLog(state.githubWebhooksLog);
-  const mock = fetchMock.sandbox().getOnce("https://api.github.com/app", {
-    slug: "<slug>",
-    html_url: "<html-url>",
-  });
-  state.Octokit = TestOctokit.defaults({ request: { fetch: mock } });
 
   // act
   await setupApp();
 
   // assert
-  t.true(mock.done());
   t.snapshot(logs, "logs");
 });
 
@@ -56,18 +52,12 @@ test.serial("setupApp() - called twice", async (t) => {
   const { state, setupApp } = t.context;
   // arrange
   const logs = mockLog(state.githubWebhooksLog);
-  const mock = fetchMock.sandbox().getOnce("https://api.github.com/app", {
-    slug: "<slug>",
-    html_url: "<html-url>",
-  });
-  state.Octokit = TestOctokit.defaults({ request: { fetch: mock } });
 
   // act
   await setupApp();
   await setupApp();
 
   // assert
-  t.true(mock.done());
   t.snapshot(logs, "logs");
 });
 
@@ -75,14 +65,16 @@ test.serial("setupApp() with error", async (t) => {
   const { state, setupApp } = t.context;
   // arrange
   const logs = mockLog(state.githubWebhooksLog);
-  const mock = fetchMock.sandbox().getOnce("https://api.github.com/app", 401);
-  state.Octokit = TestOctokit.defaults({ request: { fetch: mock } });
+  t.context.state.Octokit = {
+    defaults: () => {
+      throw new Error("oops");
+    },
+  };
 
   // act
   await t.throwsAsync(setupApp);
 
   // assert
-  t.true(mock.done());
   t.snapshot(logs, "logs");
 });
 
@@ -90,15 +82,17 @@ test.serial("setupApp() with error - called twice", async (t) => {
   const { state, setupApp } = t.context;
   // arrange
   const logs = mockLog(state.githubWebhooksLog);
-  const mock = fetchMock.sandbox().getOnce("https://api.github.com/app", 401);
-  state.Octokit = TestOctokit.defaults({ request: { fetch: mock } });
+  t.context.state.Octokit = {
+    defaults: () => {
+      throw new Error("oops");
+    },
+  };
 
   // act
   await t.throwsAsync(setupApp);
   await t.throwsAsync(setupApp);
 
   // assert
-  t.true(mock.done());
   t.snapshot(logs, "logs");
 });
 
@@ -108,16 +102,12 @@ test.serial("POST /api/github-webhooks", async (t) => {
   // arrange
   const logs = mockLog(state.githubWebhooksLog);
   const verifyAndReceiveCalls = [];
-  state.app = {
+  state.octokitApp = {
     webhooks: {
       verifyAndReceive() {
         verifyAndReceiveCalls.push(arguments);
       },
     },
-  };
-  const githubAppCalls = [];
-  state.githubApp = () => {
-    githubAppCalls.push(arguments);
   };
 
   // act
@@ -132,10 +122,9 @@ test.serial("POST /api/github-webhooks", async (t) => {
   });
 
   // assert
+  t.snapshot(logs, "logs");
   t.snapshot(response, "response");
   t.snapshot(verifyAndReceiveCalls, "app.webhooks.verifyAndReceive() calls");
-  t.snapshot(state.githubApp, "githubApp() calls");
-  t.snapshot(logs, "logs");
 });
 
 test.serial("POST /api/github-webhooks with timeout", async (t) => {
@@ -145,7 +134,7 @@ test.serial("POST /api/github-webhooks with timeout", async (t) => {
   const logs = mockLog(state.githubWebhooksLog);
   const verifyAndReceiveCalls = [];
   state.RESPONSE_TIMEOUT = 0;
-  state.app = {
+  state.octokitApp = {
     webhooks: {
       async verifyAndReceive() {
         // simulate a long running operation
@@ -156,10 +145,6 @@ test.serial("POST /api/github-webhooks with timeout", async (t) => {
       },
     },
   };
-  const githubAppCalls = [];
-  state.githubApp = () => {
-    githubAppCalls.push(arguments);
-  };
 
   // act
   const response = await handler({
@@ -173,10 +158,9 @@ test.serial("POST /api/github-webhooks with timeout", async (t) => {
   });
 
   // assert
+  t.snapshot(logs, "logs");
   t.snapshot(response, "response");
   t.snapshot(verifyAndReceiveCalls, "app.webhooks.verifyAndReceive() calls");
-  t.snapshot(state.githubApp, "githubApp() calls");
-  t.snapshot(logs, "logs");
 });
 
 test.serial("error in app.webhooks.verifyAndReceive()", async (t) => {
@@ -184,7 +168,7 @@ test.serial("error in app.webhooks.verifyAndReceive()", async (t) => {
 
   // arrange
   const logs = mockLog(state.githubWebhooksLog);
-  state.app = {
+  state.octokitApp = {
     webhooks: {
       verifyAndReceive() {
         throw new AggregateError(
@@ -222,10 +206,10 @@ test.serial(
 
     // arrange
     const logs = mockLog(state.githubWebhooksLog);
-    state.app = {
+    state.octokitApp = {
       webhooks: {
         verifyAndReceive() {
-          throw new AggregateError([0], "Hello");
+          throw new AggregateError([0], "oops");
         },
       },
     };
@@ -252,7 +236,7 @@ test.serial("Unexpected error in handler", async (t) => {
 
   // arrange
   const logs = mockLog(state.githubWebhooksLog);
-  state.app = {
+  state.octokitApp = {
     webhooks: {
       verifyAndReceive() {
         throw new Error("oops");
@@ -281,7 +265,7 @@ test.serial("GET /api/github-webhooks", async (t) => {
 
   // arrange
   const logs = mockLog(state.githubWebhooksLog);
-  state.app = {};
+  state.octokitApp = {};
 
   // act
   const response = await handler({
