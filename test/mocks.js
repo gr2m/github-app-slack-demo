@@ -63,12 +63,6 @@ export function createMockLoggerAndLogs() {
     {
       serializers: {
         err(error) {
-          error.stack = "wtf";
-          if (error.aggregateErrors) {
-            for (const err of error.aggregateErrors) {
-              err.stack = "wtf";
-            }
-          }
           return {
             ...error,
             message: error.message,

@@ -90,18 +90,132 @@ export default async function main({ octokitApp, boltApp }) {
       const [subcommand, repository] = command.text.split(/[+ ]+/g);
 
       if (subcommand === "help") {
+        logger.info("Received help command");
         await respond(USAGE);
         return;
       }
 
       if (subcommand === "subscribe") {
-        await respond(`subscribing to \`${repository}\``);
+        const [owner, repo] = repository.split("/");
+        // naive owner/repo string validation
+        if (!repo) {
+          logger.info("Received subscribe with invalid repository");
+          await respond(`Invalid repository: \`${repository}\`\n\n${USAGE}`);
+          return;
+        }
+
+        // get installation ID
+        let installationId;
+        try {
+          const { data: installation } = await octokitApp.octokit.request(
+            "GET /repos/{owner}/{repo}/installation",
+            {
+              owner,
+              repo,
+            }
+          );
+          installationId = installation.id;
+        } catch (error) {
+          logger.error(
+            { err: error, owner, repo },
+            "App is not installed on repository"
+          );
+
+          const { data: appinfo } = await octokitApp.octokit.request(
+            "GET /app"
+          );
+
+          // TODO: respond with install button.
+          await respond(
+            `GitHub App is not installed on \`${repository}\`. Install at ${appinfo.html_url}/installations/new`
+          );
+          return;
+        }
+
+        const installationOctokit = await octokitApp.getInstallationOctokit(
+          installationId
+        );
+
+        const { data } = await installationOctokit
+          .request("GET /repos/{owner}/{repo}/actions/variables/{name}", {
+            owner,
+            repo,
+            name: `HELLO_SLACK_SUBSCRIPTIONS`,
+          })
+          .catch(() => ({ data: { value: false } }));
+
+        const value = data.value;
+        if (value === false) {
+          // create the variable
+          const slackAppId = command.api_app_id;
+          const subscriptions = {
+            [slackAppId]: {
+              slackChannelId: command.channel_id,
+              githubInstallationId: installationId,
+            },
+          };
+          const newValue = JSON.stringify(subscriptions);
+
+          await installationOctokit.request(
+            "POST /repos/{owner}/{repo}/actions/variables",
+            {
+              owner,
+              repo,
+              name: `HELLO_SLACK_SUBSCRIPTIONS`,
+              value: newValue,
+            }
+          );
+
+          logger.info(
+            {
+              owner,
+              repo,
+              slackAppId,
+              slackChannelId: command.channel_id,
+              githubInstallationId: installationId,
+            },
+            "Variable created in repository"
+          );
+        } else {
+          // update the variable
+          const subscriptions = JSON.parse(value);
+          const slackAppId = command.api_app_id;
+          subscriptions[slackAppId] = {
+            slackChannelId: command.channel_id,
+            githubInstallationId: installationId,
+          };
+          const newValue = JSON.stringify(subscriptions);
+
+          await installationOctokit.request(
+            "PATCH /repos/{owner}/{repo}/actions/variables/{name}",
+            {
+              owner,
+              repo,
+              name: `HELLO_SLACK_SUBSCRIPTIONS`,
+              value: newValue,
+            }
+          );
+
+          logger.info(
+            {
+              owner,
+              repo,
+              slackAppId,
+              slackChannelId: command.channel_id,
+              githubInstallationId: installationId,
+            },
+            "Variable updated in repository"
+          );
+        }
+
+        await respond(
+          `subscribed to <https://github.com/${repository}|${repository}>`
+        );
         return;
       }
 
-      await respond(`Unknown subcommand: \`${subcommand}\`
-
-${USAGE}`);
+      logger.info("Received unknown subcommand");
+      await respond(`Unknown subcommand: \`${subcommand}\`\n\n${USAGE}`);
     }
   );
 }
