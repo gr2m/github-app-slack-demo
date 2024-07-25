@@ -9,8 +9,9 @@ Example: \`/hello-github subscribe monalisa/smile\``;
  * @param {object} options
  * @param {import("@slack/bolt").App} options.boltApp
  * @param {import("octokit").App} options.octokitApp
+ * @param {{ slackCommand: string }} options.settings
  */
-export default async function main({ octokitApp, boltApp }) {
+export default async function main({ octokitApp, boltApp, settings }) {
   octokitApp.webhooks.on("issues.opened", async ({ id, payload, octokit }) => {
     const owner = payload.repository.owner.login;
     const repo = payload.repository.name;
@@ -141,7 +142,7 @@ export default async function main({ octokitApp, boltApp }) {
   });
 
   boltApp.command(
-    "/hello-github",
+    settings.slackCommand,
     async ({ command, ack, respond, logger, context }) => {
       const [subcommand, repository] = command.text.split(/[+ ]+/g);
 

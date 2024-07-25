@@ -82,7 +82,7 @@ test("app_home_opened event", async (t) => {
     is_ext_shared_channel: false,
   };
 
-  main({ octokitApp, boltApp });
+  main({ octokitApp, boltApp, settings: { slackCommand: "/hello-github" } });
 
   // Act
   const slackEvent = {
@@ -168,7 +168,7 @@ test("/hello-github unknown", async (t) => {
     trigger_id: "7461069880567.2367503921381.9506161dae0667c99560d2c7b9a58f16",
   };
 
-  main({ octokitApp, boltApp });
+  main({ octokitApp, boltApp, settings: { slackCommand: "/hello-github" } });
 
   // Act
   const slackEvent = {
@@ -254,7 +254,7 @@ test("/hello-github help", async (t) => {
     trigger_id: "7461069880567.2367503921381.9506161dae0667c99560d2c7b9a58f16",
   };
 
-  main({ octokitApp, boltApp });
+  main({ octokitApp, boltApp, settings: { slackCommand: "/hello-github" } });
 
   // Act
   const slackEvent = {
@@ -340,7 +340,7 @@ test("/hello-github subscribe not-a-full-repo-name", async (t) => {
     trigger_id: "7461069880567.2367503921381.9506161dae0667c99560d2c7b9a58f16",
   };
 
-  main({ octokitApp, boltApp });
+  main({ octokitApp, boltApp, settings: { slackCommand: "/hello-github" } });
 
   // Act
   const slackEvent = {
@@ -430,7 +430,7 @@ test("/hello-github subscribe monalisa/smile - no installation", async (t) => {
     trigger_id: "7461069880567.2367503921381.9506161dae0667c99560d2c7b9a58f16",
   };
 
-  main({ octokitApp, boltApp });
+  main({ octokitApp, boltApp, settings: { slackCommand: "/hello-github" } });
 
   // Act
   const slackEvent = {
@@ -534,7 +534,7 @@ test("/hello-github subscribe monalisa/smile - no variable", async (t) => {
     trigger_id: "7461069880567.2367503921381.9506161dae0667c99560d2c7b9a58f16",
   };
 
-  main({ octokitApp, boltApp });
+  main({ octokitApp, boltApp, settings: { slackCommand: "/hello-github" } });
 
   // Act
   const slackEvent = {
@@ -649,7 +649,7 @@ test("/hello-github subscribe monalisa/smile - existing variable", async (t) => 
     trigger_id: "7461069880567.2367503921381.9506161dae0667c99560d2c7b9a58f16",
   };
 
-  main({ octokitApp, boltApp });
+  main({ octokitApp, boltApp, settings: { slackCommand: "/hello-github" } });
 
   // Act
   const slackEvent = {

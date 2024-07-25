@@ -18,6 +18,9 @@ const env = cleanEnv(process.env, {
   // Slack App credentials
   SLACK_BOT_TOKEN: str(),
   SLACK_SIGNING_SECRET: str(),
+
+  // app settings
+  SLACK_COMMAND: str({ default: "/hello-github-local" }),
 });
 
 const slackEventsLog = pino().child({ function: "slack-events" });
@@ -65,7 +68,7 @@ const octokitApp = new OctokitApp({
   },
 });
 
-main({ boltApp, octokitApp });
+main({ boltApp, octokitApp, settings: { slackCommand: env.SLACK_COMMAND } });
 
 export async function handler(event, context) {
   let payload;

@@ -16,6 +16,9 @@ const env = cleanEnv(process.env, {
   // Slack App credentials
   SLACK_BOT_TOKEN: str(),
   SLACK_SIGNING_SECRET: str(),
+
+  // app settings
+  SLACK_COMMAND: str({ default: "/hello-github-local" }),
 });
 
 // export as object for testing
@@ -81,7 +84,11 @@ export async function setupApp() {
     });
 
     octokitApp.log.info("Register Octokit and Bolt handlers");
-    await state.main({ octokitApp, boltApp });
+    await state.main({
+      octokitApp,
+      boltApp,
+      settings: { slackCommand: env.SLACK_COMMAND },
+    });
 
     state.octokitApp = octokitApp;
   } catch (error) {
