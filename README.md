@@ -1,81 +1,36 @@
 # github-app-slack-demo
 
-A minimal GitHub App that integrates with Slack.
+A minimal demo app that integrates GitHub with Slack.
 
-## Local Development
+## About this app
 
-### Prerequisites
+This app is a minimal demo that showcases how to integrate GitHub with Slack using GitHub Apps and Slack Apps following best practices for implementation, testing, and deployment.
 
-- Node.js v20+
-- A GitHub account
-- A Slack account
+The functionality is kept intentionally simple: use the `/hello-github subscribe owner/repo` Slack command to subscribe to new issues and pull requests for a GitHub repository.
 
-### Initial setup
+## What others built
 
-```
-npm install
-```
+Did you extend or change the functionality and want to share it with others? Add a link to your repository below
 
-### Tests
+- [Add your link here](#tbd)
 
-Run tests with
+## How it works
 
-```
-npm test
-```
+The server listens for incoming requests from Slack and GitHub. A GitHub App is used to grant access to repositories and receive events. A Slack App is used to receive commands and send messages to a channel.
 
-Open a detailed coverage report with
+For simplicity, this application is not using a database. Subscriptions are stored using [GitHub Repository Variables](https://docs.github.com/en/actions/learn-github-actions/variables). When subscribed to a repository, the user is first asked to install the configured GitHub App. Once installed, the subscription is saved using the Slack APP ID, Slack channel ID and GitHub Installation ID as a JSON string as a `HELLO_SLACK_SUBSCRIPTIONS` repository variable. When a webhook is received, `HELLO_SLACK_SUBSCRIPTIONS` is looked up for the current repository. If there are valid subscriptions, messages are sent to the respective slack channels.
 
-```
-npm run coverage
-```
+## Architecture
 
-### Register a GitHub App
+The core of the functionality lives in [main.js](main.js). It's a function that retrieves both the Slack and GitHub SDK clients and defines event and command handlers. It should be straight forward find the right place when looking for the implementation of a certain functionality. As code grows, logic can be moved out, but for the scope of this app, a single file should suffice.
 
-Run the following command and follow the instructions
+We use Netlify for deployment and the local dev server. It has a built in [local tunnel using the `--live` flag](https://docs.netlify.com/cli/local-development/#share-a-live-development-server) which lets us run the same code locally as we would in production. As part of the local dev server, we also execute [dev/server.js](dev/server.js) which verifies credentials and updates the webhook URLs for the configured GitHub and Slack apps to point to the `--live` URL of the local dev server.
 
-```
-npm run scripts/register-github-app.js
-```
+GitHub Webhooks are received using a Netlify function at [netlify/functions/github-webhooks/index.js](netlify/functions/github-webhooks/index.js). Slack commands are received using a Netlify function at [netlify/functions/slack-events/index.js](netlify/functions/slack-events/index.js). Both functions invoke the [main.js](main.js) function and inject the respective events after verifying the requests.
 
-### Register a Slack App
+## Contributing
 
-1. Open https://api.slack.com/apps
-1. From the "Your App Configuration Tokens", copy the "Refresh Token" and set it as the value for `SLACK_REFRESH_TOKEN` in your `.env` file.
-1. Click on "Create New App".
-1. Select "From Manifest" as the creation method.
-1. Choose the target workspace where you want to install the app for development.
-1. Paste the contents of your `slack-manifest.yaml` file into the provided field. Replace the placeholders
-1. Once created, copy the "Signing Secret". You will need this value as the value for `SLACK_SIGNING_SECRET` in your `.env` file.
-1. Open the "OAuth & Permissions" page
-1. Click on "Install to Workspace" and grant the requested permissions
-1. Copy the "Bot User OAuth Token" and set it as the value for `SLACK_BOT_TOKEN` in your `.env` file.
-
-### Verify Credentials
-
-```
-npm run verify
-```
-
-### Running the app
-
-```
-npm run dev
-```
-
-Test by by opening http://localhost:8000/api/health.
-
-If you don't want your browser to open automatically, you can pass `--no-open`
-
-```
-npm run dev -- --no-open
-```
-
-#### Test with slack event subscription
-
-- Start the dev server in webhooks mode: `npm run dev -- --live=$GITHUB_USER`. (Replace `$GITHUB_USER` with your GitHub username or any other string that you want to be part of a unique `*.netlify.live` URL)
-- Open your app's Event Subscriptions settings page: `https://api.slack.com/apps/[app id]/event-subscriptions`
-- Enter the copied URL in the "Request URL" field and append `/api/slack-events` to it, it should look like this: `https://[your --live value]--github-app-slack-demo/api/slack-events`. Once entered, Slack will verify the URL by sending a request, it should show up in the logs of your dev server.
+Any kind of contribution is much appreciated. Please refer to the [CONTRIBUTING.md](CONTRIBUTING.md) file for more information.
 
 ## License
 
