@@ -63,16 +63,22 @@ export function createMockLoggerAndLogs() {
     {
       serializers: {
         err(error) {
+          delete error.request?.headers?.["user-agent"];
+
           return {
             ...error,
             message: error.message,
             aggregateErrors: error.errors
-              ? error.errors.map((error) => ({
-                  ...error,
-                  message: error.message,
-                  type: error.name,
-                  stack: "<stack trace removed>",
-                }))
+              ? error.errors.map((error) => {
+                  delete error.request?.headers?.["user-agent"];
+
+                  return {
+                    ...error,
+                    message: error.message,
+                    type: error.name,
+                    stack: "<stack trace removed>",
+                  };
+                })
               : undefined,
             type: error.name,
             stack: "<stack trace removed>",
