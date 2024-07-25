@@ -32,6 +32,10 @@ GitHub Webhooks are received using a Netlify function at [netlify/functions/gith
 
 Any kind of contribution is much appreciated. Please refer to the [CONTRIBUTING.md](CONTRIBUTING.md) file for more information.
 
+## Maintainers
+
+[@gr2m](https://github.com/gr2m)
+
 ## License
 
 [MIT](LICENSE)
