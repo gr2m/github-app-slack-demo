@@ -9,7 +9,11 @@ async function run() {
     url: "https://github.com/gr2m/github-app-slack-demo",
     name: "hello-slack-local-<your-github-username>",
     default_events: ["issues"],
-    default_permissions: { issues: "write" },
+    default_permissions: {
+      actions_variables: "write",
+      issues: "write",
+      metadata: "read",
+    },
     description:
       "Test app for local development of [gr2m/github-app-slack-demo](https://github.com/gr2m/github-app-slack-demo)",
     public: false,

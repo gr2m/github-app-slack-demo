@@ -1,6 +1,6 @@
 // @ts-check
 
-import bolt from "@slack/bolt";
+import Bolt from "@slack/bolt";
 import { cleanEnv, str, num } from "envalid";
 import { App } from "octokit";
 
@@ -38,7 +38,7 @@ console.log("GitHub: Webhooks enabled");
 
 // start slack app
 // Initializes your app with your bot token and signing secret
-const slackAppClient = new bolt.App({
+const slackAppClient = new Bolt.App({
   token: env.SLACK_BOT_TOKEN,
   signingSecret: env.SLACK_SIGNING_SECRET,
 });

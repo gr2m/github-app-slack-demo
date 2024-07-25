@@ -1,49 +1,90 @@
 // @ts-check
 
-import { App, ExpressReceiver } from "@slack/bolt";
+import Bolt from "@slack/bolt";
+import { App as OctokitApp, Octokit } from "octokit";
 import { cleanEnv, str } from "envalid";
 import pino from "pino";
 
-import slackApp from "../../../slack-app.js";
+import main from "../../../main.js";
 
 const env = cleanEnv(process.env, {
+  // GitHub App credentials
+  GITHUB_APP_ID: str(),
+  GITHUB_APP_PRIVATE_KEY: str(),
+  GITHUB_OAUTH_CLIENT_ID: str(),
+  GITHUB_OAUTH_CLIENT_SECRET: str(),
+  GITHUB_WEBHOOK_SECRET: str(),
+
+  // Slack App credentials
   SLACK_BOT_TOKEN: str(),
   SLACK_SIGNING_SECRET: str(),
 });
 
-const slackLog = pino().child({ name: "octokit" });
+const slackEventsLog = pino().child({ function: "slack-events" });
 
-const expressReceiver = new ExpressReceiver({
+const expressReceiver = new Bolt.ExpressReceiver({
   signingSecret: `${env.SLACK_SIGNING_SECRET}`,
   processBeforeResponse: true,
 });
 
-const app = new App({
+const boltApp = new Bolt.App({
   signingSecret: `${env.SLACK_SIGNING_SECRET}`,
   token: `${env.SLACK_BOT_TOKEN}`,
   receiver: expressReceiver,
+  logger: {
+    debug: slackEventsLog.debug.bind(slackEventsLog),
+    info: slackEventsLog.info.bind(slackEventsLog),
+    warn: slackEventsLog.warn.bind(slackEventsLog),
+    error: slackEventsLog.error.bind(slackEventsLog),
+    getLevel: () => slackEventsLog.level,
+    setLevel: (level) => {
+      slackEventsLog.level = level;
+    },
+    setName: (name) => {},
+  },
 });
 
-slackApp(app, slackLog);
+const octokitApp = new OctokitApp({
+  appId: env.GITHUB_APP_ID,
+  privateKey: env.GITHUB_APP_PRIVATE_KEY.replace(/\\n/g, "\n"),
+  oauth: {
+    clientId: env.GITHUB_OAUTH_CLIENT_ID,
+    clientSecret: env.GITHUB_OAUTH_CLIENT_SECRET,
+  },
+  webhooks: {
+    secret: env.GITHUB_WEBHOOK_SECRET,
+  },
+  Octokit: Octokit.defaults({
+    userAgent: "gr2m/github-app-slack-demo",
+  }),
+  log: {
+    debug: slackEventsLog.debug.bind(slackEventsLog),
+    info: slackEventsLog.info.bind(slackEventsLog),
+    warn: slackEventsLog.warn.bind(slackEventsLog),
+    error: slackEventsLog.error.bind(slackEventsLog),
+  },
+});
+
+main({ boltApp, octokitApp });
 
 export async function handler(event, context) {
   let payload;
   try {
     payload = parseRequestBody(
-      slackLog,
+      slackEventsLog,
       event.body,
       event.headers["content-type"]
     );
   } catch (error) {
-    slackLog.error({ err: error }, "Failed to parse request body");
+    slackEventsLog.error({ err: error }, "Failed to parse request body");
     return undefined;
   }
 
-  slackLog.info({ payload }, "Received event");
+  slackEventsLog.info({ payload }, "Received event");
 
   // acknowledge Slack's challenge request
   if (payload?.type === "url_verification") {
-    slackLog.info("Responding to challenge request");
+    slackEventsLog.info("Responding to challenge request");
     return {
       statusCode: 200,
       body: payload.challenge,
@@ -60,7 +101,7 @@ export async function handler(event, context) {
     },
   };
 
-  await app.processEvent(slackEvent);
+  await boltApp.processEvent(slackEvent);
 
   return {
     statusCode: 200,
