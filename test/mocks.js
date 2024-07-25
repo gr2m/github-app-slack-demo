@@ -1,8 +1,5 @@
 import pino from "pino";
 
-// normalize stack traces for snapshot testing
-Error.prepareStackTrace = (error, stack) => `<error stack>`;
-
 export const DUMMY_PRIVATE_KEY = `-----BEGIN RSA PRIVATE KEY-----
 MIIEpAIBAAKCAQEA1c7+9z5Pad7OejecsQ0bu3aozN3tihPmljnnudb9G3HECdnH
 lWu2/a1gB9JW5TBQ+AVpum9Okx7KfqkfBKL9mcHgSL0yWMdjMfNOqNtrQqKlN4kE
@@ -64,7 +61,30 @@ export function createMockLoggerAndLogs() {
   const logs = [];
   const logger = pino(
     {
-      serializers: {},
+      serializers: {
+        err(error) {
+          error.stack = "wtf";
+          if (error.aggregateErrors) {
+            for (const err of error.aggregateErrors) {
+              err.stack = "wtf";
+            }
+          }
+          return {
+            ...error,
+            message: error.message,
+            aggregateErrors: error.errors
+              ? error.errors.map((error) => ({
+                  ...error,
+                  message: error.message,
+                  type: error.name,
+                  stack: "<stack trace removed>",
+                }))
+              : undefined,
+            type: error.name,
+            stack: "<stack trace removed>",
+          };
+        },
+      },
     },
     {
       write: (line) => {
