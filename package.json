@@ -19,7 +19,7 @@
     "@slack/bolt": "^3.19.0",
     "envalid": "^8.0.0",
     "octokit": "^4.0.2",
-    "pino": "^9.3.1"
+    "pino": "^9.3.2"
   },
   "devDependencies": {
     "ava": "^6.1.3",
