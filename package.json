@@ -26,10 +26,10 @@
     "axios-mock-adapter": "^1.22.0",
     "c8": "^10.1.2",
     "chalk": "^5.3.0",
-    "fetch-mock": "^10.1.0",
+    "fetch-mock": "^10.1.1",
     "netlify-cli": "^17.28.0",
     "open-cli": "^8.0.0",
-    "pino-pretty": "^11.2.1",
+    "pino-pretty": "^11.2.2",
     "register-github-app": "^2.0.2"
   }
 }
