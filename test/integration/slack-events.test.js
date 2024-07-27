@@ -17,7 +17,6 @@ const TestOctokit = Octokit.defaults({
 test("app_home_opened event", async (t) => {
   // Arrange
   const [logger, logs] = createMockLoggerAndLogs();
-  const requests = [];
 
   const octokitApp = new OctokitApp({
     appId: 1,
@@ -105,7 +104,6 @@ test("app_home_opened event", async (t) => {
 test("/hello-github unknown", async (t) => {
   // Arrange
   const [logger, logs] = createMockLoggerAndLogs();
-  const requests = [];
 
   const octokitApp = new OctokitApp({
     appId: 1,
@@ -191,7 +189,6 @@ test("/hello-github unknown", async (t) => {
 test("/hello-github help", async (t) => {
   // Arrange
   const [logger, logs] = createMockLoggerAndLogs();
-  const requests = [];
 
   const octokitApp = new OctokitApp({
     appId: 1,
@@ -277,7 +274,6 @@ test("/hello-github help", async (t) => {
 test("/hello-github subscribe not-a-full-repo-name", async (t) => {
   // Arrange
   const [logger, logs] = createMockLoggerAndLogs();
-  const requests = [];
 
   const octokitApp = new OctokitApp({
     appId: 1,
@@ -363,7 +359,6 @@ test("/hello-github subscribe not-a-full-repo-name", async (t) => {
 test("/hello-github subscribe monalisa/smile - no installation", async (t) => {
   // Arrange
   const [logger, logs] = createMockLoggerAndLogs();
-  const requests = [];
   const octokitFetchMock = fetchMock
     .sandbox()
     .getOnce("path:/repos/monalisa/smile/installation", 404)
