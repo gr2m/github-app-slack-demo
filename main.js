@@ -1,7 +1,5 @@
 // @ts-check
 
-const SUPPORTED_SUBCOMMANDS = ["help", "subscribe"];
-
 const USAGE = `Usage: \`/hello-github subscribe [repository]\`
 Example: \`/hello-github subscribe monalisa/smile\``;
 
@@ -12,6 +10,7 @@ Example: \`/hello-github subscribe monalisa/smile\``;
  * @param {{ slackCommand: string }} options.settings
  */
 export default async function main({ octokitApp, boltApp, settings }) {
+  // https://docs.github.com/webhooks/webhook-events-and-payloads?actionType=opened#issues
   octokitApp.webhooks.on("issues.opened", async ({ id, payload, octokit }) => {
     const owner = payload.repository.owner.login;
     const repo = payload.repository.name;
@@ -99,11 +98,12 @@ export default async function main({ octokitApp, boltApp, settings }) {
     );
   });
 
-  // handle webhook error event
+  // Handle errors occuring in GitHub Webhooks
   octokitApp.webhooks.onError((error) => {
     octokitApp.log.error(error, "An error occurred in a webhook handler");
   });
 
+  // https://api.slack.com/events/app_home_opened
   boltApp.event("app_home_opened", async ({ event, client, logger }) => {
     logger.info("app_home_opened event received");
 
@@ -141,9 +141,11 @@ export default async function main({ octokitApp, boltApp, settings }) {
     });
   });
 
+  // https://api.slack.com/interactivity/slash-commands
+  // https://slack.dev/bolt-js/concepts#commands
   boltApp.command(
     settings.slackCommand,
-    async ({ command, ack, respond, logger, context }) => {
+    async ({ command, respond, logger, context }) => {
       const [subcommand, repository] = command.text.split(/[+ ]+/g);
 
       if (subcommand === "help") {
