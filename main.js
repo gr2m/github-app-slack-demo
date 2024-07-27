@@ -10,100 +10,6 @@ Example: \`/hello-github subscribe monalisa/smile\``;
  * @param {{ slackCommand: string }} options.settings
  */
 export default async function main({ octokitApp, boltApp, settings }) {
-  // https://docs.github.com/webhooks/webhook-events-and-payloads?actionType=opened#issues
-  octokitApp.webhooks.on("issues.opened", async ({ id, payload, octokit }) => {
-    const owner = payload.repository.owner.login;
-    const repo = payload.repository.name;
-    const issueNumber = payload.issue.number;
-
-    octokit.log.info(
-      {
-        owner,
-        repo,
-        issueNumber,
-      },
-      "An issue was opened"
-    );
-
-    // get the subscription settings
-    const {
-      data: { value },
-    } = await octokit
-      .request("GET /repos/{owner}/{repo}/actions/variables/{name}", {
-        owner,
-        repo,
-        name: `HELLO_SLACK_SUBSCRIPTIONS`,
-      })
-      .catch(() => ({ data: { value: false } }));
-
-    if (value === false) {
-      octokit.log.info(
-        {
-          owner,
-          repo,
-        },
-        "No subscriptions found"
-      );
-      return;
-    }
-
-    const subscriptions = JSON.parse(value);
-
-    // get slack app id
-    const result = await boltApp.client.auth.test();
-    const appSubscription = subscriptions[result.bot_id];
-
-    if (!appSubscription) {
-      octokit.log.info(
-        {
-          owner,
-          repo,
-          appId: result.bot_id,
-          subscriptionAppIds: Object.keys(subscriptions),
-        },
-        "Subscription not found for app"
-      );
-      return;
-    }
-
-    // make sure subscription is for current installation
-    if (appSubscription.githubInstallationId !== payload.installation.id) {
-      octokit.log.info(
-        {
-          owner,
-          repo,
-          installationId: payload.installation.id,
-          subscriptionInstallationId: appSubscription.githubInstallationId,
-        },
-        "Subscription not for current installation"
-      );
-      return;
-    }
-
-    // send message to slack
-    const message = `New issue opened: ${payload.issue.html_url}`;
-    await boltApp.client.chat.postMessage({
-      channel: appSubscription.slackChannelId,
-      text: message,
-    });
-
-    octokit.log.info(
-      {
-        owner,
-        repo,
-        issueNumber,
-        slackChannelId: appSubscription.slackChannelId,
-      },
-      "Message sent to slack"
-    );
-  });
-
-  // Handle errors occuring in GitHub Webhooks
-  // https://github.com/octokit/webhooks.js#webhooksonerror
-  octokitApp.webhooks.onError((error) => {
-    octokitApp.log.error(error, "An error occurred in a webhook handler");
-  });
-
   // https://api.slack.com/events/app_home_opened
   boltApp.event("app_home_opened", async ({ event, client, logger }) => {
     logger.info("app_home_opened event received");
@@ -278,4 +184,98 @@ export default async function main({ octokitApp, boltApp, settings }) {
       await respond(`Unknown subcommand: \`${subcommand}\`\n\n${USAGE}`);
     }
   );
+
+  // https://docs.github.com/webhooks/webhook-events-and-payloads?actionType=opened#issues
+  octokitApp.webhooks.on("issues.opened", async ({ id, payload, octokit }) => {
+    const owner = payload.repository.owner.login;
+    const repo = payload.repository.name;
+    const issueNumber = payload.issue.number;
+
+    octokit.log.info(
+      {
+        owner,
+        repo,
+        issueNumber,
+      },
+      "An issue was opened"
+    );
+
+    // get the subscription settings
+    const {
+      data: { value },
+    } = await octokit
+      .request("GET /repos/{owner}/{repo}/actions/variables/{name}", {
+        owner,
+        repo,
+        name: `HELLO_SLACK_SUBSCRIPTIONS`,
+      })
+      .catch(() => ({ data: { value: false } }));
+
+    if (value === false) {
+      octokit.log.info(
+        {
+          owner,
+          repo,
+        },
+        "No subscriptions found"
+      );
+      return;
+    }
+
+    const subscriptions = JSON.parse(value);
+
+    // get slack app id
+    const result = await boltApp.client.auth.test();
+    const appSubscription = subscriptions[result.bot_id];
+
+    if (!appSubscription) {
+      octokit.log.info(
+        {
+          owner,
+          repo,
+          appId: result.bot_id,
+          subscriptionAppIds: Object.keys(subscriptions),
+        },
+        "Subscription not found for app"
+      );
+      return;
+    }
+
+    // make sure subscription is for current installation
+    if (appSubscription.githubInstallationId !== payload.installation.id) {
+      octokit.log.info(
+        {
+          owner,
+          repo,
+          installationId: payload.installation.id,
+          subscriptionInstallationId: appSubscription.githubInstallationId,
+        },
+        "Subscription not for current installation"
+      );
+      return;
+    }
+
+    // send message to slack
+    const message = `New issue opened: ${payload.issue.html_url}`;
+    await boltApp.client.chat.postMessage({
+      channel: appSubscription.slackChannelId,
+      text: message,
+    });
+
+    octokit.log.info(
+      {
+        owner,
+        repo,
+        issueNumber,
+        slackChannelId: appSubscription.slackChannelId,
+      },
+      "Message sent to slack"
+    );
+  });
+
+  // Handle errors occuring in GitHub Webhooks
+  // https://github.com/octokit/webhooks.js#webhooksonerror
+  octokitApp.webhooks.onError((error) => {
+    octokitApp.log.error(error, "An error occurred in a webhook handler");
+  });
 }
