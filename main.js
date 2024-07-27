@@ -99,6 +99,7 @@ export default async function main({ octokitApp, boltApp, settings }) {
   });
 
   // Handle errors occuring in GitHub Webhooks
+  // https://github.com/octokit/webhooks.js#webhooksonerror
   octokitApp.webhooks.onError((error) => {
     octokitApp.log.error(error, "An error occurred in a webhook handler");
   });
