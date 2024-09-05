@@ -16,7 +16,7 @@
   "license": "MIT",
   "dependencies": {
     "@netlify/functions": "^2.8.1",
-    "@slack/bolt": "^3.19.0",
+    "@slack/bolt": "^3.21.1",
     "envalid": "^8.0.0",
     "octokit": "^4.0.2",
     "pino": "^9.3.2"
