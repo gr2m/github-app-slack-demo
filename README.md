@@ -6,7 +6,7 @@ A minimal demo app that integrates GitHub with Slack.
 
 This app is a minimal demo that showcases how to integrate GitHub with Slack using GitHub Apps and Slack Apps following best practices for implementation, testing, and deployment.
 
-The functionality is kept intentionally simple: use the `/hello-github subscribe owner/repo` Slack command to subscribe to new issues and pull requests for a GitHub repository.
+The functionality is kept intentionally simple: use the `/hello-github subscribe owner/repo` Slack command to subscribe to new issues for a GitHub repository.
 
 ## What others built
 
