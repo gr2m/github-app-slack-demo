@@ -1,10 +1,7 @@
 // @ts-check
 
-import { App as OctokitApp, Octokit } from "octokit";
 import { cleanEnv, str } from "envalid";
 import pino from "pino";
-
-import main from "../../../main.js";
 
 const env = cleanEnv(process.env, {
   // Set by Netlify
