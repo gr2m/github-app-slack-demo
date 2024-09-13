@@ -13,7 +13,7 @@ const env = cleanEnv(process.env, {
 
 const slackLoginLog = pino().child({ function: "slack-login" });
 
-export async function handler(event, context) {
+export async function handler() {
   slackLoginLog.info("Received event");
 
   const oauthLoginUrl = new URL(`https://slack.com/oauth/v2/authorize`);
