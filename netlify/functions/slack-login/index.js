@@ -31,24 +31,3 @@ export async function handler(event, context) {
     },
   };
 }
-
-/**
- * @param {string | null} stringBody
- * @param {string | undefined} contentType
- * @returns {Record<string, unknown>}
- */
-function parseRequestBody(log, stringBody, contentType) {
-  let inputStringBody = stringBody ?? "";
-
-  if (contentType === "application/x-www-form-urlencoded") {
-    const keyValuePairs = inputStringBody.split("&");
-    return Object.fromEntries(
-      keyValuePairs.map((pair) => {
-        const [key, value] = pair.split("=");
-        return [key, decodeURIComponent(value)];
-      }),
-    );
-  }
-
-  return JSON.parse(inputStringBody);
-}
