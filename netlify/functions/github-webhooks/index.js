@@ -29,6 +29,7 @@ export const state = {
   githubWebhooksLog: pino().child({ function: "github-webhooks" }),
   OctokitApp,
   Octokit,
+  Bolt,
   main,
   RESPONSE_TIMEOUT: 9000,
 };
@@ -66,7 +67,7 @@ export async function setupApp() {
     });
 
     state.githubWebhooksLog.info("Set up Bolt app");
-    const boltApp = new Bolt.App({
+    const boltApp = new state.Bolt.App({
       signingSecret: `${env.SLACK_SIGNING_SECRET}`,
       token: `${env.SLACK_BOT_TOKEN}`,
       logger: {
