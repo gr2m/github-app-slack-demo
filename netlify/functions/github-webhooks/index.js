@@ -84,7 +84,7 @@ export async function setupApp() {
       },
     });
 
-    octokitApp.log.info("Register Octokit and Bolt handlers");
+    state.githubWebhooksLog.info("Register Octokit and Bolt handlers");
     await state.main({
       octokitApp,
       boltApp,
