@@ -99,7 +99,7 @@ export function createMockLoggerAndLogs() {
 
         logs.push(data);
       },
-    }
+    },
   );
 
   return [logger, logs];

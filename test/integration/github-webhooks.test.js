@@ -30,7 +30,7 @@ test("issues.opened event", async (t) => {
             githubInstallationId: 1,
           },
         }),
-      }
+      },
     );
   const octokitApp = new OctokitApp({
     appId: 1,
@@ -129,7 +129,7 @@ test("issues.opened event - subscription not found", async (t) => {
     })
     .getOnce(
       "path:/repos/octocat/hello-world/actions/variables/HELLO_SLACK_SUBSCRIPTIONS",
-      404
+      404,
     );
   const octokitApp = new OctokitApp({
     appId: 1,
@@ -213,7 +213,7 @@ test("issues.opened event - subscription found but not for app", async (t) => {
             githubInstallationId: 2,
           },
         }),
-      }
+      },
     );
   const octokitApp = new OctokitApp({
     appId: 1,
@@ -311,7 +311,7 @@ test("issues.opened event - subscription found but not for installation", async 
             githubInstallationId: 2,
           },
         }),
-      }
+      },
     );
   const octokitApp = new OctokitApp({
     appId: 1,
@@ -442,7 +442,7 @@ test("error in event handler", async (t) => {
       id: "1",
       name: "issues",
       payload: {},
-    })
+    }),
   );
 
   // Assert

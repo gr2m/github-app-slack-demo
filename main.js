@@ -78,29 +78,27 @@ export default async function main({ octokitApp, boltApp, settings }) {
             {
               owner,
               repo,
-            }
+            },
           );
           installationId = installation.id;
         } catch (error) {
           logger.error(
             { err: error, owner, repo },
-            "App is not installed on repository"
+            "App is not installed on repository",
           );
 
-          const { data: appinfo } = await octokitApp.octokit.request(
-            "GET /app"
-          );
+          const { data: appinfo } =
+            await octokitApp.octokit.request("GET /app");
 
           // TODO: respond with install button.
           await respond(
-            `GitHub App is not installed on \`${repository}\`. Install at ${appinfo.html_url}/installations/new`
+            `GitHub App is not installed on \`${repository}\`. Install at ${appinfo.html_url}/installations/new`,
           );
           return;
         }
 
-        const installationOctokit = await octokitApp.getInstallationOctokit(
-          installationId
-        );
+        const installationOctokit =
+          await octokitApp.getInstallationOctokit(installationId);
 
         const { data } = await installationOctokit
           .request("GET /repos/{owner}/{repo}/actions/variables/{name}", {
@@ -129,7 +127,7 @@ export default async function main({ octokitApp, boltApp, settings }) {
               repo,
               name: `HELLO_SLACK_SUBSCRIPTIONS`,
               value: newValue,
-            }
+            },
           );
 
           logger.info(
@@ -140,7 +138,7 @@ export default async function main({ octokitApp, boltApp, settings }) {
               slackChannelId: command.channel_id,
               githubInstallationId: installationId,
             },
-            "Variable created in repository"
+            "Variable created in repository",
           );
         } else {
           // update the variable
@@ -159,7 +157,7 @@ export default async function main({ octokitApp, boltApp, settings }) {
               repo,
               name: `HELLO_SLACK_SUBSCRIPTIONS`,
               value: newValue,
-            }
+            },
           );
 
           logger.info(
@@ -170,19 +168,19 @@ export default async function main({ octokitApp, boltApp, settings }) {
               slackChannelId: command.channel_id,
               githubInstallationId: installationId,
             },
-            "Variable updated in repository"
+            "Variable updated in repository",
           );
         }
 
         await respond(
-          `subscribed to <https://github.com/${repository}|${repository}>`
+          `subscribed to <https://github.com/${repository}|${repository}>`,
         );
         return;
       }
 
       logger.info("Received unknown subcommand");
       await respond(`Unknown subcommand: \`${subcommand}\`\n\n${USAGE}`);
-    }
+    },
   );
 
   // https://docs.github.com/webhooks/webhook-events-and-payloads?actionType=opened#issues
@@ -197,7 +195,7 @@ export default async function main({ octokitApp, boltApp, settings }) {
         repo,
         issueNumber,
       },
-      "An issue was opened"
+      "An issue was opened",
     );
 
     // get the subscription settings
@@ -217,7 +215,7 @@ export default async function main({ octokitApp, boltApp, settings }) {
           owner,
           repo,
         },
-        "No subscriptions found"
+        "No subscriptions found",
       );
       return;
     }
@@ -236,7 +234,7 @@ export default async function main({ octokitApp, boltApp, settings }) {
           appId: result.bot_id,
           subscriptionAppIds: Object.keys(subscriptions),
         },
-        "Subscription not found for app"
+        "Subscription not found for app",
       );
       return;
     }
@@ -250,7 +248,7 @@ export default async function main({ octokitApp, boltApp, settings }) {
           installationId: payload.installation.id,
           subscriptionInstallationId: appSubscription.githubInstallationId,
         },
-        "Subscription not for current installation"
+        "Subscription not for current installation",
       );
       return;
     }
@@ -269,7 +267,7 @@ export default async function main({ octokitApp, boltApp, settings }) {
         issueNumber,
         slackChannelId: appSubscription.slackChannelId,
       },
-      "Message sent to slack"
+      "Message sent to slack",
     );
   });
 

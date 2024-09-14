@@ -29,14 +29,14 @@ async function run() {
     crypto.createPrivateKey(appCredentials.pem).export({
       type: "pkcs8",
       format: "pem",
-    })
+    }),
   );
   const singleLinePrivateKey = privateKeyPKCS8.trim().replace(/\n/g, "\\n");
 
   // ensure key boundaries include 'RSA PRIVATE KEY' as required by probot
   const singleLinePrivateKeyRSA = singleLinePrivateKey.replace(
     /(-----(BEGIN|END)) (PRIVATE KEY-----)/g,
-    "$1 RSA $3"
+    "$1 RSA $3",
   );
 
   console.log(`Create or update your .env file with the following values:

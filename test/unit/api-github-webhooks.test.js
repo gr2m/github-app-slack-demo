@@ -177,7 +177,7 @@ test.serial("error in app.webhooks.verifyAndReceive()", async (t) => {
               status: 400,
             }),
           ],
-          "Hello"
+          "Hello",
         );
       },
     },
@@ -228,7 +228,7 @@ test.serial(
     // assert
     t.snapshot(response, "response");
     t.snapshot(logs, "logs");
-  }
+  },
 );
 
 test.serial("Unexpected error in handler", async (t) => {
