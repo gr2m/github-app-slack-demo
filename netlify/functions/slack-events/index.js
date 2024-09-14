@@ -76,7 +76,7 @@ export async function handler(event, context) {
     payload = parseRequestBody(
       slackEventsLog,
       event.body,
-      event.headers["content-type"]
+      event.headers["content-type"],
     );
   } catch (error) {
     slackEventsLog.error({ err: error }, "Failed to parse request body");
@@ -126,7 +126,7 @@ function parseRequestBody(log, stringBody, contentType) {
       keyValuePairs.map((pair) => {
         const [key, value] = pair.split("=");
         return [key, decodeURIComponent(value)];
-      })
+      }),
     );
   }
 
