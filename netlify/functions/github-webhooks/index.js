@@ -95,7 +95,7 @@ export async function setupApp() {
   } catch (error) {
     state.githubWebhooksLog.error(
       error,
-      "Failed to set up Octokit and Slack clients"
+      "Failed to set up Octokit and Slack clients",
     );
     state.setupAppError = error;
     throw error;
@@ -113,7 +113,7 @@ export async function handler(event) {
       {
         method: event.httpMethod,
       },
-      "Method not allowed"
+      "Method not allowed",
     );
 
     return {
@@ -137,7 +137,7 @@ export async function handler(event) {
       "event.id": eventId,
       "event.signature": eventSignature,
     },
-    "Webhook received"
+    "Webhook received",
   );
 
   let timeout;

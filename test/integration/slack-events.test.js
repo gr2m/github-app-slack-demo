@@ -459,7 +459,7 @@ test("/hello-github subscribe monalisa/smile - no variable", async (t) => {
     })
     .getOnce(
       "path:/repos/monalisa/smile/actions/variables/HELLO_SLACK_SUBSCRIPTIONS",
-      404
+      404,
     )
     .postOnce("path:/repos/monalisa/smile/actions/variables", 201, {
       functionMatcher(url, { method, body }) {
@@ -568,7 +568,7 @@ test("/hello-github subscribe monalisa/smile - existing variable", async (t) => 
         value: JSON.stringify({
           foo: "bar",
         }),
-      }
+      },
     )
     .patchOnce(
       "path:/repos/monalisa/smile/actions/variables/HELLO_SLACK_SUBSCRIPTIONS",
@@ -578,7 +578,7 @@ test("/hello-github subscribe monalisa/smile - existing variable", async (t) => 
           requests.push([method, new URL(url).pathname, JSON.parse(body)]);
           return true;
         },
-      }
+      },
     );
 
   const octokitApp = new OctokitApp({
