@@ -3,6 +3,7 @@ name: Release
   push:
     branches:
       - main
+      - staging
   workflow_dispatch: {}
 
 jobs:
