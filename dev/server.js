@@ -18,7 +18,7 @@ const isNetlifyLiveUrl = makeValidator((url) => {
   if (hostname.endsWith(".netlify.live")) return url;
 
   throw new Error(
-    `Must be set to a *.netlify.live url. Start with "netlify dev --live"`,
+    `Must be set to a *.netlify.live url. Start with "netlify dev --live"`
   );
 });
 
@@ -63,19 +63,19 @@ async function main() {
   const { data: appInfo } = await githubAppClient.octokit.request("GET /app");
   console.log(
     `${DEV_SERVER_LOG_PREFIX} Authenticated as GitHub App ${chalk.bold.whiteBright(
-      appInfo?.slug,
-    )} (${chalk.underline(appInfo?.html_url)}).`,
+      appInfo?.slug
+    )} (${chalk.underline(appInfo?.html_url)}).`
   );
 
   // update the webhook url
   // https://docs.github.com/rest/apps/webhooks#update-a-webhook-configuration-for-an-app
   const { data: appHookConfig } = await githubAppClient.octokit.request(
-    "GET /app/hook/config",
+    "GET /app/hook/config"
   );
   const githubWebhookUrl = `${env.URL}/api/github-webhooks`;
   if (appHookConfig.url === githubWebhookUrl) {
     console.log(
-      `${DEV_SERVER_LOG_PREFIX} GitHub App webhook URL is already up-to-date.`,
+      `${DEV_SERVER_LOG_PREFIX} GitHub App webhook URL is already up-to-date.`
     );
   } else {
     await githubAppClient.octokit.request("PATCH /app/hook/config", {
@@ -86,8 +86,8 @@ async function main() {
     });
     console.log(
       `${DEV_SERVER_LOG_PREFIX} Updated GitHub App webhook URL to ${chalk.underline(
-        githubWebhookUrl,
-      )}.`,
+        githubWebhookUrl
+      )}.`
     );
   }
 
@@ -111,13 +111,13 @@ async function main() {
     // update value of SLACK_CONFIGURATION_REFRESH_TOKEN in .env file
     const newEnvFileContents = envFileContents.replace(
       /SLACK_CONFIGURATION_REFRESH_TOKEN=.*/,
-      `SLACK_CONFIGURATION_REFRESH_TOKEN=${result.refresh_token}`,
+      `SLACK_CONFIGURATION_REFRESH_TOKEN=${result.refresh_token}`
     );
     await writeFile(".env", newEnvFileContents);
     console.log(
       `${DEV_SERVER_LOG_PREFIX} Updated ${chalk.bold.whiteBright(
-        "SLACK_CONFIGURATION_REFRESH_TOKEN",
-      )} in ${chalk.bold.whiteBright(".env")}.`,
+        "SLACK_CONFIGURATION_REFRESH_TOKEN"
+      )} in ${chalk.bold.whiteBright(".env")}.`
     );
 
     /** @type {any} `manifest` and all its keys can be undefined in theory */
@@ -132,7 +132,7 @@ async function main() {
       manifest.features.slash_commands[0].url === slackEventsUrl
     ) {
       console.log(
-        `${DEV_SERVER_LOG_PREFIX} URLs are up-to-date for the "${manifest.display_information.name}" Slack app.`,
+        `${DEV_SERVER_LOG_PREFIX} URLs are up-to-date for the "${manifest.display_information.name}" Slack app.`
       );
       return;
     }
@@ -147,18 +147,18 @@ async function main() {
       token: configurationAccessToken,
     });
     console.log(
-      `${DEV_SERVER_LOG_PREFIX} Updated URLs for the "${manifest.display_information.name}" Slack app.`,
+      `${DEV_SERVER_LOG_PREFIX} Updated URLs for the "${manifest.display_information.name}" Slack app.`
     );
   } catch (error) {
     if (error?.data?.error === "invalid_refresh_token") {
       console.log(
         `${DEV_SERVER_LOG_PREFIX} ${chalk.bold.redBright(
-          "Invalid refresh token",
+          "Invalid refresh token"
         )}. Get a valid token at ${chalk.underline(
-          "https://api.slack.com/reference/manifests#config-tokens",
+          "https://api.slack.com/reference/manifests#config-tokens"
         )}, then update ${chalk.bold.whiteBright(
-          "SLACK_CONFIGURATION_REFRESH_TOKEN",
-        )} in ${chalk.bold.whiteBright(".env")}.`,
+          "SLACK_CONFIGURATION_REFRESH_TOKEN"
+        )} in ${chalk.bold.whiteBright(".env")}.`
       );
 
       process.exit();
@@ -167,14 +167,14 @@ async function main() {
     if (error?.data?.error === "no_permission") {
       console.log(
         `${DEV_SERVER_LOG_PREFIX} ${chalk.bold.yellowBright(
-          "Slack Request URL could not be updated",
+          "Slack Request URL could not be updated"
         )}. Set it to ${chalk.bold.whiteBright(
-          slackEventsUrl,
+          slackEventsUrl
         )} at ${chalk.underline(
-          `https://api.slack.com/apps/${env.SLACK_APP_ID}/event-subscriptions`,
+          `https://api.slack.com/apps/${env.SLACK_APP_ID}/event-subscriptions`
         )} and ${chalk.underline(
-          `https://api.slack.com/apps/${env.SLACK_APP_ID}/slash-commands`,
-        )}.`,
+          `https://api.slack.com/apps/${env.SLACK_APP_ID}/slash-commands`
+        )}.`
       );
       return;
     }
