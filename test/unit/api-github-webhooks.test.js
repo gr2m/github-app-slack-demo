@@ -23,6 +23,7 @@ test.before(async (t) => {
   );
 
   t.context.state = state;
+  t.context.state.Bolt = { App: function DummyBoltApp() {} };
   t.context.setupApp = setupApp;
   t.context.handler = handler;
 });

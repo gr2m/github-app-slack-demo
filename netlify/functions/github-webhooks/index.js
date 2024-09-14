@@ -29,6 +29,7 @@ export const state = {
   githubWebhooksLog: pino().child({ function: "github-webhooks" }),
   OctokitApp,
   Octokit,
+  Bolt,
   main,
   RESPONSE_TIMEOUT: 9000,
 };
@@ -66,7 +67,7 @@ export async function setupApp() {
     });
 
     state.githubWebhooksLog.info("Set up Bolt app");
-    const boltApp = new Bolt.App({
+    const boltApp = new state.Bolt.App({
       signingSecret: `${env.SLACK_SIGNING_SECRET}`,
       token: `${env.SLACK_BOT_TOKEN}`,
       logger: {
@@ -74,8 +75,8 @@ export async function setupApp() {
         info: state.githubWebhooksLog.info.bind(state.githubWebhooksLog),
         warn: state.githubWebhooksLog.warn.bind(state.githubWebhooksLog),
         error: state.githubWebhooksLog.error.bind(state.githubWebhooksLog),
+        /* c8 ignore next 5 */
         getLevel: () => state.githubWebhooksLog.level,
-        /* c8 ignore next 4 */
         setLevel: (level) => {
           state.githubWebhooksLog.level = level;
         },
@@ -83,7 +84,7 @@ export async function setupApp() {
       },
     });
 
-    octokitApp.log.info("Register Octokit and Bolt handlers");
+    state.githubWebhooksLog.info("Register Octokit and Bolt handlers");
     await state.main({
       octokitApp,
       boltApp,
