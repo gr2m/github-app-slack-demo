@@ -63,24 +63,33 @@ async function main() {
   const { data: appInfo } = await githubAppClient.octokit.request("GET /app");
   console.log(
     `${DEV_SERVER_LOG_PREFIX} Authenticated as GitHub App ${chalk.bold.whiteBright(
-      appInfo.slug,
-    )} (${chalk.underline(appInfo.html_url)}).`,
+      appInfo?.slug,
+    )} (${chalk.underline(appInfo?.html_url)}).`,
   );
 
   // update the webhook url
   // https://docs.github.com/rest/apps/webhooks#update-a-webhook-configuration-for-an-app
-  const githubWebhookUrl = `${env.URL}/api/github-webhooks`;
-  await githubAppClient.octokit.request("PATCH /app/hook/config", {
-    data: {
-      url: githubWebhookUrl,
-      secret: env.GITHUB_WEBHOOK_SECRET,
-    },
-  });
-  console.log(
-    `${DEV_SERVER_LOG_PREFIX} Updated GitHub App webhook URL to ${chalk.underline(
-      githubWebhookUrl,
-    )}.`,
+  const { data: appHookConfig } = await githubAppClient.octokit.request(
+    "GET /app/hook/config",
   );
+  const githubWebhookUrl = `${env.URL}/api/github-webhooks`;
+  if (appHookConfig.url === githubWebhookUrl) {
+    console.log(
+      `${DEV_SERVER_LOG_PREFIX} GitHub App webhook URL is already up-to-date.`,
+    );
+  } else {
+    await githubAppClient.octokit.request("PATCH /app/hook/config", {
+      data: {
+        url: githubWebhookUrl,
+        secret: env.GITHUB_WEBHOOK_SECRET,
+      },
+    });
+    console.log(
+      `${DEV_SERVER_LOG_PREFIX} Updated GitHub App webhook URL to ${chalk.underline(
+        githubWebhookUrl,
+      )}.`,
+    );
+  }
 
   // start slack app
   // Initializes your app with your bot token and signing secret
@@ -111,6 +120,7 @@ async function main() {
       )} in ${chalk.bold.whiteBright(".env")}.`,
     );
 
+    /** @type {any} `manifest` and all its keys can be undefined in theory */
     const { manifest } = await slackApp.client.apps.manifest.export({
       app_id: env.SLACK_APP_ID,
       token: configurationAccessToken,
@@ -122,15 +132,14 @@ async function main() {
       manifest.features.slash_commands[0].url === slackEventsUrl
     ) {
       console.log(
-        `${DEV_SERVER_LOG_PREFIX} Slack Request URL is already set to ${chalk.bold.greenBright(
-          slackEventsUrl,
-        )}.`,
+        `${DEV_SERVER_LOG_PREFIX} URLs are up-to-date for the "${manifest.display_information.name}" Slack app.`,
       );
       return;
     }
 
-    manifest.settings.event_subscriptions.request_url = slackEventsUrl;
     manifest.features.slash_commands[0].url = slackEventsUrl;
+    manifest.oauth_config.redirect_urls = [env.URL];
+    manifest.settings.event_subscriptions.request_url = slackEventsUrl;
 
     await slackApp.client.apps.manifest.update({
       app_id: env.SLACK_APP_ID,
@@ -138,9 +147,7 @@ async function main() {
       token: configurationAccessToken,
     });
     console.log(
-      `${DEV_SERVER_LOG_PREFIX} Updated Slack Request URL to ${chalk.bold.whiteBright(
-        slackEventsUrl,
-      )}.`,
+      `${DEV_SERVER_LOG_PREFIX} Updated URLs for the "${manifest.display_information.name}" Slack app.`,
     );
   } catch (error) {
     if (error?.data?.error === "invalid_refresh_token") {
