@@ -75,8 +75,8 @@ export async function setupApp() {
         info: state.githubWebhooksLog.info.bind(state.githubWebhooksLog),
         warn: state.githubWebhooksLog.warn.bind(state.githubWebhooksLog),
         error: state.githubWebhooksLog.error.bind(state.githubWebhooksLog),
+        /* c8 ignore next 5 */
         getLevel: () => state.githubWebhooksLog.level,
-        /* c8 ignore next 4 */
         setLevel: (level) => {
           state.githubWebhooksLog.level = level;
         },
