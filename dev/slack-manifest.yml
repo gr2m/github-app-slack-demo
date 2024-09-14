@@ -1,5 +1,5 @@
 display_information:
-  name: Hello Github Local (<your github login>)
+  name: Hello GitHub Local (<your github login>)
 features:
   app_home:
     home_tab_enabled: true
@@ -8,19 +8,23 @@ features:
   bot_user:
     display_name: Hello Github Local (<your github login>)
     always_online: false
-slash_commands:
-  - command: /hello-github
-    description: Subscribe to GitHub events
-    usage_hint: subscribe <owner>/<repo>
-    should_escape: false
+  slash_commands:
+    - command: /hello-github-local
+      url: https://<commit sha>--github-app-slack-demo.netlify.live/api/slack-events
+      description: Subscribe to GitHub events
+      usage_hint: subscribe <owner>/<repo>
+      should_escape: false
 oauth_config:
+  redirect_urls:
+    - https://<commit sha>--github-app-slack-demo.netlify.live/
   scopes:
     bot:
       - chat:write
       - commands
+      - users:read
 settings:
   event_subscriptions:
-    request_url: https://placeholder--github-app-slack-demo.netlify.live/api/slack-events
+    request_url: https://<commit sha>--github-app-slack-demo.netlify.live/api/slack-events
     bot_events:
       - app_home_opened
   interactivity:
