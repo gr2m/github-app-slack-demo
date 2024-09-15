@@ -1,13 +1,13 @@
 // @ts-check
 
 import Bolt from "@slack/bolt";
-import SlackOauth from "@slack/oauth";
 import { App as OctokitApp, Octokit } from "octokit";
 import { cleanEnv, str } from "envalid";
 import pino from "pino";
 import serverless from "serverless-http";
 
 import main from "../../../main.js";
+import { getInstallationStore } from "../../../lib/slack-installation-store.js";
 
 const env = cleanEnv(process.env, {
   // GitHub App credentials
@@ -48,7 +48,7 @@ const slackLogger = {
 //       https://github.com/slackapi/bolt-js/blob/87d75c59f5eb9b28586173487dac1a0d6e1deada/src/receivers/AwsLambdaReceiver.ts#L93-L96
 //
 //       Because of that we need to use the ExpressReceiver and wrap it with `serverless` to make it work with Netlify
-const boltInstallationStore = new SlackOauth.FileInstallationStore();
+const boltInstallationStore = getInstallationStore();
 const expressReceiver = new Bolt.ExpressReceiver({
   clientId: env.SLACK_CLIENT_ID,
   clientSecret: env.SLACK_CLIENT_SECRET,
@@ -106,4 +106,4 @@ main({
   },
 });
 
-export const handler = serverless(expressReceiver.app);
+export default serverless(expressReceiver.app);

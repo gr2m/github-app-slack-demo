@@ -1,12 +1,12 @@
 // @ts-check
 
 import Bolt from "@slack/bolt";
-import SlackOauth from "@slack/oauth";
 import { cleanEnv, str } from "envalid";
 import { App as OctokitApp, Octokit } from "octokit";
 import pino from "pino";
 
 import main from "../../../main.js";
+import { getInstallationStore } from "../../../lib/slack-installation-store.js";
 
 const env = cleanEnv(process.env, {
   // GitHub App credentials
@@ -72,7 +72,7 @@ export async function setupApp() {
     });
 
     state.githubWebhooksLog.info("Set up Bolt app");
-    const boltInstallationStore = new SlackOauth.FileInstallationStore();
+    const boltInstallationStore = getInstallationStore();
     const boltApp = new state.Bolt.App({
       signingSecret: `${env.SLACK_SIGNING_SECRET}`,
       clientId: env.SLACK_CLIENT_ID,
@@ -123,7 +123,7 @@ export async function setupApp() {
  *
  * @param {import("@netlify/functions").HandlerEvent} event
  */
-export async function handler(event) {
+export default async function handler(event) {
   if (event.httpMethod !== "POST") {
     state.githubWebhooksLog.info(
       {
@@ -132,15 +132,14 @@ export async function handler(event) {
       "Method not allowed",
     );
 
-    return {
-      /* The `405` status code in HTTP indicates that the method used in the request is not
+    /* The `405` status code in HTTP indicates that the method used in the request is not
       allowed for the specified resource. In the provided code snippet, when the
       `handler` function is called with an HTTP method other than `POST`, it returns a
       response with a status code of `405` along with an error message indicating that
       the method is not allowed for that endpoint. */
-      statusCode: 405,
-      body: JSON.stringify({ error: "Method not allowed" }),
-    };
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+    });
   }
 
   const eventName = event.headers["x-github-event"];
@@ -172,24 +171,23 @@ export async function handler(event) {
     });
     clearTimeout(timeout);
 
-    if (didTimeout)
-      return {
-        statusCode: 202,
-        body: JSON.stringify({ ok: true }),
-      };
+    if (didTimeout) {
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 202,
+      });
+    }
 
-    return {
-      statusCode: 200,
-    };
+    return new Response("OK", {
+      status: 200,
+    });
   } catch (error) {
     // app.webhooks.verifyAndReceive throws an AggregateError
     if (!Array.isArray(error.errors)) {
       state.githubWebhooksLog.error({ err: error }, "Handler error");
 
-      return {
-        statusCode: 500,
-        body: "Error: An unexpected error occurred",
-      };
+      return new Response("Error: An unexpected error occurred", {
+        status: 500,
+      });
     }
 
     state.githubWebhooksLog.error({ err: error }, "Handler error");
@@ -201,9 +199,8 @@ export async function handler(event) {
       : "Error: An unexpected error occurred";
     const statusCode = typeof err.status !== "undefined" ? err.status : 500;
 
-    return {
-      statusCode,
-      body: errorMessage,
-    };
+    return new Response(errorMessage, {
+      status: statusCode,
+    });
   }
 }

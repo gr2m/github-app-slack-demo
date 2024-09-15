@@ -16,6 +16,7 @@
   },
   "license": "MIT",
   "dependencies": {
+    "@netlify/blobs": "^8.0.1",
     "@netlify/functions": "^2.8.1",
     "@slack/bolt": "^3.21.1",
     "@slack/oauth": "^3.0.1",
@@ -35,5 +36,6 @@
     "pino-pretty": "^11.2.2",
     "prettier": "^3.3.3",
     "register-github-app": "^2.0.2"
-  }
+  },
+  "packageManager": "yarn@1.22.19+sha1.4ba7fc5c6e704fce2066ecbfb0b0d8976fe62447"
 }
