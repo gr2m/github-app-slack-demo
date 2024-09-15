@@ -71,6 +71,8 @@ export async function setupApp() {
       },
     });
 
+    octokitApp.webhooks.receive;
+
     state.githubWebhooksLog.info("Set up Bolt app");
     const boltInstallationStore = getInstallationStore();
     const boltApp = new state.Bolt.App({
@@ -155,32 +157,15 @@ export default async function handler(event) {
     "Webhook received",
   );
 
-  let timeout;
-  try {
-    let didTimeout = false;
-    timeout = setTimeout(() => {
-      didTimeout = true;
-    }, state.RESPONSE_TIMEOUT).unref();
-
-    await setupApp();
-    await state.octokitApp.webhooks.verifyAndReceive({
+  return Promise.race([
+    respondWithStillProcessingOnTimeout(state.RESPONSE_TIMEOUT),
+    handleWebhookRequest(state.octokitApp, {
       id: eventId,
       name: eventName,
       signature: eventSignature,
       payload: event.body,
-    });
-    clearTimeout(timeout);
-
-    if (didTimeout) {
-      return new Response(JSON.stringify({ ok: true }), {
-        status: 202,
-      });
-    }
-
-    return new Response("OK", {
-      status: 200,
-    });
-  } catch (error) {
+    }),
+  ]).catch((error) => {
     // app.webhooks.verifyAndReceive throws an AggregateError
     if (!Array.isArray(error.errors)) {
       state.githubWebhooksLog.error({ err: error }, "Handler error");
@@ -191,7 +176,6 @@ export default async function handler(event) {
     }
 
     state.githubWebhooksLog.error({ err: error }, "Handler error");
-    clearTimeout(timeout);
 
     const err = Array.from(error.errors)[0];
     const errorMessage = err.message
@@ -202,5 +186,35 @@ export default async function handler(event) {
     return new Response(errorMessage, {
       status: statusCode,
     });
-  }
+  });
+}
+
+/**
+ * @param {number} timeout
+ * @returns {Promise<Response>}
+ */
+function respondWithStillProcessingOnTimeout(timeout) {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve(
+        new Response(JSON.stringify({ ok: true }), {
+          status: 202,
+        }),
+      );
+    }, timeout).unref();
+  });
+}
+
+/**
+ * @param {import("octokit").App} octokitApp
+ * @param {any} event
+ * @returns
+ */
+async function handleWebhookRequest(octokitApp, event) {
+  await setupApp();
+  await octokitApp.webhooks.verifyAndReceive(event);
+
+  return new Response("OK", {
+    status: 200,
+  });
 }
