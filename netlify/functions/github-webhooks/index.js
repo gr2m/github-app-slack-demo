@@ -14,7 +14,8 @@ const env = cleanEnv(process.env, {
   GITHUB_WEBHOOK_SECRET: str(),
 
   // Slack App credentials
-  SLACK_BOT_TOKEN: str(),
+  SLACK_CLIENT_ID: str(),
+  SLACK_CLIENT_SECRET: str(),
   SLACK_SIGNING_SECRET: str(),
 
   // app settings
@@ -69,7 +70,8 @@ export async function setupApp() {
     state.githubWebhooksLog.info("Set up Bolt app");
     const boltApp = new state.Bolt.App({
       signingSecret: `${env.SLACK_SIGNING_SECRET}`,
-      token: `${env.SLACK_BOT_TOKEN}`,
+      clientId: env.SLACK_CLIENT_ID,
+      clientSecret: env.SLACK_CLIENT_SECRET,
       logger: {
         debug: state.githubWebhooksLog.debug.bind(state.githubWebhooksLog),
         info: state.githubWebhooksLog.info.bind(state.githubWebhooksLog),

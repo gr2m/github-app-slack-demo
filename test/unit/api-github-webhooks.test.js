@@ -14,7 +14,8 @@ test.before(async (t) => {
   process.env.GITHUB_OAUTH_CLIENT_ID = "<client-id>";
   process.env.GITHUB_OAUTH_CLIENT_SECRET = "<client-secret>";
   process.env.GITHUB_WEBHOOK_SECRET = "<webhook-secret>";
-  process.env.SLACK_BOT_TOKEN = "<slack-bot-token>";
+  process.env.SLACK_CLIENT_ID = "<slack-client-id>";
+  process.env.SLACK_CLIENT_SECRET = "<slack-client-secret>";
   process.env.SLACK_SIGNING_SECRET = "<slack-signing-secret>";
 
   // we import dynamically as we need to set environment variables before importing

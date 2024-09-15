@@ -10,7 +10,8 @@ const env = cleanEnv(process.env, {
   GITHUB_APP_PRIVATE_KEY: str(),
 
   // Slack App credentials
-  SLACK_BOT_TOKEN: str(),
+  SLACK_CLIENT_ID: str(),
+  SLACK_CLIENT_SECRET: str(),
   SLACK_SIGNING_SECRET: str(),
 });
 
@@ -39,9 +40,12 @@ console.log("GitHub: Webhooks enabled");
 // start slack app
 // Initializes your app with your bot token and signing secret
 const slackAppClient = new Bolt.App({
-  token: env.SLACK_BOT_TOKEN,
   signingSecret: env.SLACK_SIGNING_SECRET,
+  clientId: env.SLACK_CLIENT_ID,
+  clientSecret: env.SLACK_CLIENT_SECRET,
+  stateSecret: process.env.SLACK_STATE_SECRET,
+  scopes: ["channels:history", "chat:write", "commands"],
+  authorize: async () => ({}),
 });
 
-await slackAppClient.client.auth.test();
-console.log("Slack: App authenticated");
+// TODO: is there a way to verify credentials for the slack app?
