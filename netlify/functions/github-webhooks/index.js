@@ -1,4 +1,7 @@
+// @ts-check
+
 import Bolt from "@slack/bolt";
+import SlackOauth from "@slack/oauth";
 import { cleanEnv, str } from "envalid";
 import { App as OctokitApp, Octokit } from "octokit";
 import pino from "pino";
@@ -14,6 +17,7 @@ const env = cleanEnv(process.env, {
   GITHUB_WEBHOOK_SECRET: str(),
 
   // Slack App credentials
+  SLACK_APP_ID: str(),
   SLACK_CLIENT_ID: str(),
   SLACK_CLIENT_SECRET: str(),
   SLACK_SIGNING_SECRET: str(),
@@ -37,7 +41,7 @@ export const state = {
 
 /**
  * Set up the GitHub App. If the app is already set up, return it.
- * @returns {Promise<OctokitApp>}
+ * @returns {Promise<void>}
  * @throws {Error}
  * */
 export async function setupApp() {
@@ -68,6 +72,7 @@ export async function setupApp() {
     });
 
     state.githubWebhooksLog.info("Set up Bolt app");
+    const boltInstallationStore = new SlackOauth.FileInstallationStore();
     const boltApp = new state.Bolt.App({
       signingSecret: `${env.SLACK_SIGNING_SECRET}`,
       clientId: env.SLACK_CLIENT_ID,
@@ -84,13 +89,22 @@ export async function setupApp() {
         },
         setName: (name) => {},
       },
+      installationStore: boltInstallationStore,
+      authorize: async (...args) => {
+        console.log(`authorize`, { args });
+        return {};
+      },
     });
 
     state.githubWebhooksLog.info("Register Octokit and Bolt handlers");
     await state.main({
       octokitApp,
       boltApp,
-      settings: { slackCommand: env.SLACK_COMMAND },
+      boltInstallationStore,
+      settings: {
+        slackCommand: env.SLACK_COMMAND,
+        slackAppId: env.SLACK_APP_ID,
+      },
     });
 
     state.octokitApp = octokitApp;

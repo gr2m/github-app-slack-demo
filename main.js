@@ -5,11 +5,17 @@ Example: \`/hello-github subscribe monalisa/smile\``;
 
 /**
  * @param {object} options
- * @param {import("@slack/bolt").App} options.boltApp
  * @param {import("octokit").App} options.octokitApp
- * @param {{ slackCommand: string }} options.settings
+ * @param {import("@slack/bolt").App} options.boltApp
+ * @param {import("@slack/oauth").FileInstallationStore} options.boltInstallationStore
+ * @param {{ slackAppId: string, slackCommand: string }} options.settings
  */
-export default async function main({ octokitApp, boltApp, settings }) {
+export default async function main({
+  octokitApp,
+  boltApp,
+  boltInstallationStore,
+  settings,
+}) {
   // https://api.slack.com/events/app_home_opened
   boltApp.event("app_home_opened", async ({ event, client, logger }) => {
     logger.info("app_home_opened event received");
@@ -52,7 +58,8 @@ export default async function main({ octokitApp, boltApp, settings }) {
   // https://slack.dev/bolt-js/concepts#commands
   boltApp.command(
     settings.slackCommand,
-    async ({ command, respond, logger, context }) => {
+    async ({ command, respond, logger, context, ack }) => {
+      await ack();
       const [subcommand, repository] = command.text.split(/[+ ]+/g);
 
       if (subcommand === "help") {
@@ -111,11 +118,14 @@ export default async function main({ octokitApp, boltApp, settings }) {
         const value = data.value;
         if (value === false) {
           // create the variable
-          const botId = context.botId;
           const subscriptions = {
-            [botId]: {
-              slackChannelId: command.channel_id,
-              githubInstallationId: installationId,
+            [settings.slackAppId]: {
+              [command.team_id]: {
+                [command.channel_id]: {
+                  slackEnterpriseId: command.enterprise_id,
+                  githubInstallationId: installationId,
+                },
+              },
             },
           };
           const newValue = JSON.stringify(subscriptions);
@@ -134,7 +144,7 @@ export default async function main({ octokitApp, boltApp, settings }) {
             {
               owner,
               repo,
-              botId,
+              slackAppId: settings.slackAppId,
               slackChannelId: command.channel_id,
               githubInstallationId: installationId,
             },
@@ -143,9 +153,16 @@ export default async function main({ octokitApp, boltApp, settings }) {
         } else {
           // update the variable
           const subscriptions = JSON.parse(value);
-          const botId = context.botId;
-          subscriptions[botId] = {
-            slackChannelId: command.channel_id,
+          if (!subscriptions[settings.slackAppId]) {
+            subscriptions[settings.slackAppId] = {};
+          }
+          if (!subscriptions[settings.slackAppId][command.team_id]) {
+            subscriptions[settings.slackAppId][command.team_id] = {};
+          }
+          subscriptions[settings.slackAppId][command.team_id][
+            command.channel_id
+          ] = {
+            slackEnterpriseId: command.enterprise_id,
             githubInstallationId: installationId,
           };
           const newValue = JSON.stringify(subscriptions);
@@ -164,7 +181,7 @@ export default async function main({ octokitApp, boltApp, settings }) {
             {
               owner,
               repo,
-              botId,
+              slackAppId: settings.slackAppId,
               slackChannelId: command.channel_id,
               githubInstallationId: installationId,
             },
@@ -223,15 +240,14 @@ export default async function main({ octokitApp, boltApp, settings }) {
     const subscriptions = JSON.parse(value);
 
     // get slack app id
-    const result = await boltApp.client.auth.test();
-    const appSubscription = subscriptions[result.bot_id];
+    const appSubscription = subscriptions[settings.slackAppId];
 
     if (!appSubscription) {
       octokit.log.info(
         {
           owner,
           repo,
-          appId: result.bot_id,
+          appId: settings.slackAppId,
           subscriptionAppIds: Object.keys(subscriptions),
         },
         "Subscription not found for app",
@@ -239,36 +255,39 @@ export default async function main({ octokitApp, boltApp, settings }) {
       return;
     }
 
-    // make sure subscription is for current installation
-    if (appSubscription.githubInstallationId !== payload.installation.id) {
-      octokit.log.info(
-        {
-          owner,
-          repo,
-          installationId: payload.installation.id,
-          subscriptionInstallationId: appSubscription.githubInstallationId,
-        },
-        "Subscription not for current installation",
-      );
-      return;
-    }
-
     // send message to slack
     const message = `New issue opened: ${payload.issue.html_url}`;
-    await boltApp.client.chat.postMessage({
-      channel: appSubscription.slackChannelId,
-      text: message,
-    });
 
-    octokit.log.info(
-      {
-        owner,
-        repo,
-        issueNumber,
-        slackChannelId: appSubscription.slackChannelId,
-      },
-      "Message sent to slack",
-    );
+    for (const [teamId, subscription] of Object.entries(appSubscription)) {
+      // make sure subscription is for current installation
+      if (subscription.githubInstallationId !== payload.installation.id) {
+        octokit.log.info(
+          {
+            owner,
+            repo,
+            installationId: payload.installation.id,
+            subscriptionInstallationId: appSubscription.githubInstallationId,
+          },
+          "Subscription not for current installation",
+        );
+        continue;
+      }
+
+      console.log("looking up bot");
+      console.log({ subscription });
+
+      const { bot } = await boltInstallationStore.fetchInstallation({
+        teamId,
+        isEnterpriseInstall: false,
+        enterpriseId: subscription.slackEnterpriseId,
+      });
+
+      await boltApp.client.chat.postMessage({
+        token: bot.token,
+        channel: subscription.slackChannelId,
+        text: message,
+      });
+    }
   });
 
   // Handle errors occuring in GitHub Webhooks

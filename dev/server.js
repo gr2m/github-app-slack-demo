@@ -100,13 +100,17 @@ async function main() {
     signingSecret: env.SLACK_SIGNING_SECRET,
     stateSecret: "state-secret",
     scopes: [],
-    developerMode: true,
+    deferInitialization: true,
   });
 
   const envFileContents = await readFile(".env", "utf8");
-  const slackEventsUrl = `${env.URL}/api/slack-events`;
+  const slackUrl = `${env.URL}/api/slack`;
+  const slackOauthRedirectUrl = `${slackUrl}/oauth_redirect`;
+  const slackEventsUrl = `${slackUrl}/events`;
 
   try {
+    await slackApp.init();
+
     const result = await slackApp.client.tooling.tokens.rotate({
       refresh_token: env.SLACK_CONFIGURATION_REFRESH_TOKEN,
     });
@@ -134,7 +138,8 @@ async function main() {
     // update the Slack Request URL if needed
     if (
       manifest.settings.event_subscriptions.request_url === slackEventsUrl &&
-      manifest.features.slash_commands[0].url === slackEventsUrl
+      manifest.features.slash_commands[0].url === slackEventsUrl &&
+      manifest.oauth_config.redirect_urls[0] === slackOauthRedirectUrl
     ) {
       console.log(
         `${DEV_SERVER_LOG_PREFIX} URLs are up-to-date for the "${manifest.display_information.name}" Slack app.`,
@@ -143,7 +148,7 @@ async function main() {
     }
 
     manifest.features.slash_commands[0].url = slackEventsUrl;
-    manifest.oauth_config.redirect_urls = [env.URL];
+    manifest.oauth_config.redirect_urls = [slackOauthRedirectUrl];
     manifest.settings.event_subscriptions.request_url = slackEventsUrl;
 
     await slackApp.client.apps.manifest.update({
@@ -173,9 +178,7 @@ async function main() {
       console.log(
         `${DEV_SERVER_LOG_PREFIX} ${chalk.bold.yellowBright(
           "Slack Request URL could not be updated",
-        )}. Set it to ${chalk.bold.whiteBright(
-          slackEventsUrl,
-        )} at ${chalk.underline(
+        )}. Set it to ${chalk.bold.whiteBright(slackUrl)} at ${chalk.underline(
           `https://api.slack.com/apps/${env.SLACK_APP_ID}/event-subscriptions`,
         )} and ${chalk.underline(
           `https://api.slack.com/apps/${env.SLACK_APP_ID}/slash-commands`,
