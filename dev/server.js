@@ -179,6 +179,18 @@ async function main() {
       return;
     }
 
+    // handle account_inactive
+    if (error?.data?.error === "account_inactive") {
+      console.log(
+        `${DEV_SERVER_LOG_PREFIX} ${chalk.bold.redBright(
+          "Account is inactive - probably the app has been uninstalled",
+        )}. ${chalk.underline(
+          `https://api.slack.com/apps/${env.SLACK_APP_ID}/permissions`,
+        )}`,
+      );
+      process.exit();
+    }
+
     throw error;
   }
 }
