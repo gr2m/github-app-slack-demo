@@ -30,7 +30,8 @@ const env = cleanEnv(process.env, {
 
   // Slack App credentials
   SLACK_APP_ID: str(),
-  SLACK_BOT_TOKEN: str(),
+  SLACK_CLIENT_ID: str(),
+  SLACK_CLIENT_SECRET: str(),
   SLACK_SIGNING_SECRET: str(),
   SLACK_CONFIGURATION_REFRESH_TOKEN: str(),
 
@@ -94,8 +95,12 @@ async function main() {
   // start slack app
   // Initializes your app with your bot token and signing secret
   const slackApp = new Bolt.App({
-    token: env.SLACK_BOT_TOKEN,
+    clientId: env.SLACK_CLIENT_ID,
+    clientSecret: env.SLACK_CLIENT_SECRET,
     signingSecret: env.SLACK_SIGNING_SECRET,
+    stateSecret: "state-secret",
+    scopes: [],
+    developerMode: true,
   });
 
   const envFileContents = await readFile(".env", "utf8");
@@ -177,18 +182,6 @@ async function main() {
         )}.`,
       );
       return;
-    }
-
-    // handle account_inactive
-    if (error?.data?.error === "account_inactive") {
-      console.log(
-        `${DEV_SERVER_LOG_PREFIX} ${chalk.bold.redBright(
-          "Account is inactive - probably the app has been uninstalled",
-        )}. ${chalk.underline(
-          `https://api.slack.com/apps/${env.SLACK_APP_ID}/permissions`,
-        )}`,
-      );
-      process.exit();
     }
 
     throw error;
