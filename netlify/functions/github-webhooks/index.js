@@ -1,9 +1,12 @@
+// @ts-check
+
 import Bolt from "@slack/bolt";
 import { cleanEnv, str } from "envalid";
 import { App as OctokitApp, Octokit } from "octokit";
 import pino from "pino";
 
 import main from "../../../main.js";
+import { getInstallationStore } from "../../../lib/slack-installation-store.js";
 
 const env = cleanEnv(process.env, {
   // GitHub App credentials
@@ -14,11 +17,17 @@ const env = cleanEnv(process.env, {
   GITHUB_WEBHOOK_SECRET: str(),
 
   // Slack App credentials
-  SLACK_BOT_TOKEN: str(),
+  SLACK_APP_ID: str(),
+  SLACK_CLIENT_ID: str(),
+  SLACK_CLIENT_SECRET: str(),
   SLACK_SIGNING_SECRET: str(),
 
   // app settings
   SLACK_COMMAND: str({ default: "/hello-github-local" }),
+
+  // netlify environment variables
+  SITE_ID: str(),
+  NETLIFY_PERSONAL_ACCESS_TOKEN: str(),
 });
 
 // export as object for testing
@@ -36,7 +45,7 @@ export const state = {
 
 /**
  * Set up the GitHub App. If the app is already set up, return it.
- * @returns {Promise<OctokitApp>}
+ * @returns {Promise<void>}
  * @throws {Error}
  * */
 export async function setupApp() {
@@ -66,10 +75,17 @@ export async function setupApp() {
       },
     });
 
+    octokitApp.webhooks.receive;
+
     state.githubWebhooksLog.info("Set up Bolt app");
+    const boltInstallationStore = getInstallationStore({
+      siteID: env.SITE_ID,
+      token: env.NETLIFY_PERSONAL_ACCESS_TOKEN,
+    });
     const boltApp = new state.Bolt.App({
       signingSecret: `${env.SLACK_SIGNING_SECRET}`,
-      token: `${env.SLACK_BOT_TOKEN}`,
+      clientId: env.SLACK_CLIENT_ID,
+      clientSecret: env.SLACK_CLIENT_SECRET,
       logger: {
         debug: state.githubWebhooksLog.debug.bind(state.githubWebhooksLog),
         info: state.githubWebhooksLog.info.bind(state.githubWebhooksLog),
@@ -82,13 +98,20 @@ export async function setupApp() {
         },
         setName: (name) => {},
       },
+      installationStore: boltInstallationStore,
+      /* c8 ignore next */
+      authorize: async (...args) => ({}),
     });
 
     state.githubWebhooksLog.info("Register Octokit and Bolt handlers");
     await state.main({
       octokitApp,
       boltApp,
-      settings: { slackCommand: env.SLACK_COMMAND },
+      boltInstallationStore,
+      settings: {
+        slackCommand: env.SLACK_COMMAND,
+        slackAppId: env.SLACK_APP_ID,
+      },
     });
 
     state.octokitApp = octokitApp;
@@ -105,31 +128,29 @@ export async function setupApp() {
 /**
  * Netlify function to handle webhook event requests from GitHub
  *
- * @param {import("@netlify/functions").HandlerEvent} event
+ * @param {import("@netlify/functions").HandlerEvent} request
  */
-export async function handler(event) {
-  if (event.httpMethod !== "POST") {
+export async function handler(request) {
+  if (request.httpMethod !== "POST") {
     state.githubWebhooksLog.info(
       {
-        method: event.httpMethod,
+        method: request.httpMethod,
       },
       "Method not allowed",
     );
 
-    return {
-      /* The `405` status code in HTTP indicates that the method used in the request is not
+    /* The `405` status code in HTTP indicates that the method used in the request is not
       allowed for the specified resource. In the provided code snippet, when the
       `handler` function is called with an HTTP method other than `POST`, it returns a
       response with a status code of `405` along with an error message indicating that
       the method is not allowed for that endpoint. */
-      statusCode: 405,
-      body: JSON.stringify({ error: "Method not allowed" }),
-    };
+
+    return errorJsonResponse("Method not allowed", 405);
   }
 
-  const eventName = event.headers["x-github-event"];
-  const eventId = event.headers["x-github-delivery"];
-  const eventSignature = event.headers["x-hub-signature-256"];
+  const eventName = request.headers["x-github-event"];
+  const eventId = request.headers["x-github-delivery"];
+  const eventSignature = request.headers["x-hub-signature-256"];
 
   state.githubWebhooksLog.info(
     {
@@ -140,44 +161,22 @@ export async function handler(event) {
     "Webhook received",
   );
 
-  let timeout;
-  try {
-    let didTimeout = false;
-    timeout = setTimeout(() => {
-      didTimeout = true;
-    }, state.RESPONSE_TIMEOUT).unref();
-
-    await setupApp();
-    await state.octokitApp.webhooks.verifyAndReceive({
+  return Promise.race([
+    respondWithStillProcessingOnTimeout(state.RESPONSE_TIMEOUT),
+    handleWebhookRequest({
       id: eventId,
       name: eventName,
       signature: eventSignature,
-      payload: event.body,
-    });
-    clearTimeout(timeout);
-
-    if (didTimeout)
-      return {
-        statusCode: 202,
-        body: JSON.stringify({ ok: true }),
-      };
-
-    return {
-      statusCode: 200,
-    };
-  } catch (error) {
+      payload: request.body,
+    }),
+  ]).catch((error) => {
     // app.webhooks.verifyAndReceive throws an AggregateError
     if (!Array.isArray(error.errors)) {
       state.githubWebhooksLog.error({ err: error }, "Handler error");
-
-      return {
-        statusCode: 500,
-        body: "Error: An unexpected error occurred",
-      };
+      return errorJsonResponse("An unexpected error occurred");
     }
 
     state.githubWebhooksLog.error({ err: error }, "Handler error");
-    clearTimeout(timeout);
 
     const err = Array.from(error.errors)[0];
     const errorMessage = err.message
@@ -185,9 +184,43 @@ export async function handler(event) {
       : "Error: An unexpected error occurred";
     const statusCode = typeof err.status !== "undefined" ? err.status : 500;
 
-    return {
-      statusCode,
-      body: errorMessage,
-    };
-  }
+    return errorJsonResponse(errorMessage, statusCode);
+  });
+}
+
+/**
+ * @param {number} timeout
+ * @returns {Promise<import("@netlify/functions").BuilderResponse>}
+ */
+function respondWithStillProcessingOnTimeout(timeout) {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve(jsonResponse({ stillProcessing: true }, 202));
+    }, timeout).unref();
+  });
+}
+
+/**
+ * @param {any} event
+ * @returns {Promise<import("@netlify/functions").BuilderResponse>}
+ */
+async function handleWebhookRequest(event) {
+  await setupApp();
+  await state.octokitApp.webhooks.verifyAndReceive(event);
+
+  return jsonResponse({ ok: true });
+}
+
+function jsonResponse(data, status = 200) {
+  return {
+    statusCode: status,
+    body: JSON.stringify(data),
+    headers: {
+      "Content-Type": "application/json",
+    },
+  };
+}
+
+function errorJsonResponse(error, status = 500) {
+  return jsonResponse({ error }, status);
 }
