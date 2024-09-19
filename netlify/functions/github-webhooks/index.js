@@ -24,6 +24,10 @@ const env = cleanEnv(process.env, {
 
   // app settings
   SLACK_COMMAND: str({ default: "/hello-github-local" }),
+
+  // netlify environment variables
+  SITE_ID: str(),
+  NETLIFY_PERSONAL_ACCESS_TOKEN: str(),
 });
 
 // export as object for testing
@@ -74,7 +78,10 @@ export async function setupApp() {
     octokitApp.webhooks.receive;
 
     state.githubWebhooksLog.info("Set up Bolt app");
-    const boltInstallationStore = getInstallationStore();
+    const boltInstallationStore = getInstallationStore({
+      siteID: env.SITE_ID,
+      token: env.NETLIFY_PERSONAL_ACCESS_TOKEN,
+    });
     const boltApp = new state.Bolt.App({
       signingSecret: `${env.SLACK_SIGNING_SECRET}`,
       clientId: env.SLACK_CLIENT_ID,
@@ -123,13 +130,13 @@ export async function setupApp() {
 /**
  * Netlify function to handle webhook event requests from GitHub
  *
- * @param {import("@netlify/functions").HandlerEvent} event
+ * @param {import("@netlify/functions").HandlerEvent} request
  */
-export default async function handler(event) {
-  if (event.httpMethod !== "POST") {
+export async function handler(request) {
+  if (request.httpMethod !== "POST") {
     state.githubWebhooksLog.info(
       {
-        method: event.httpMethod,
+        method: request.httpMethod,
       },
       "Method not allowed",
     );
@@ -140,12 +147,12 @@ export default async function handler(event) {
       response with a status code of `405` along with an error message indicating that
       the method is not allowed for that endpoint. */
 
-    return new ErrorJsonResponse("Method not allowed", 405);
+    return errorJsonResponse("Method not allowed", 405);
   }
 
-  const eventName = event.headers["x-github-event"];
-  const eventId = event.headers["x-github-delivery"];
-  const eventSignature = event.headers["x-hub-signature-256"];
+  const eventName = request.headers["x-github-event"];
+  const eventId = request.headers["x-github-delivery"];
+  const eventSignature = request.headers["x-hub-signature-256"];
 
   state.githubWebhooksLog.info(
     {
@@ -158,17 +165,17 @@ export default async function handler(event) {
 
   return Promise.race([
     respondWithStillProcessingOnTimeout(state.RESPONSE_TIMEOUT),
-    handleWebhookRequest(state.octokitApp, {
+    handleWebhookRequest({
       id: eventId,
       name: eventName,
       signature: eventSignature,
-      payload: event.body,
+      payload: request.body,
     }),
   ]).catch((error) => {
     // app.webhooks.verifyAndReceive throws an AggregateError
     if (!Array.isArray(error.errors)) {
       state.githubWebhooksLog.error({ err: error }, "Handler error");
-      return new ErrorJsonResponse("An unexpected error occurred");
+      return errorJsonResponse("An unexpected error occurred");
     }
 
     state.githubWebhooksLog.error({ err: error }, "Handler error");
@@ -179,7 +186,7 @@ export default async function handler(event) {
       : "Error: An unexpected error occurred";
     const statusCode = typeof err.status !== "undefined" ? err.status : 500;
 
-    return new ErrorJsonResponse(errorMessage, statusCode);
+    return errorJsonResponse(errorMessage, statusCode);
   });
 }
 
@@ -190,34 +197,32 @@ export default async function handler(event) {
 function respondWithStillProcessingOnTimeout(timeout) {
   return new Promise((resolve) => {
     setTimeout(() => {
-      resolve(new JsonResponse({ stillProcessing: true }));
+      resolve(jsonResponse({ stillProcessing: true }));
     }, timeout).unref();
   });
 }
 
 /**
- * @param {import("octokit").App} octokitApp
  * @param {any} event
- * @returns
+ * @returns {Promise<import("@netlify/functions").BuilderResponse>}
  */
-async function handleWebhookRequest(octokitApp, event) {
+async function handleWebhookRequest(event) {
   await setupApp();
-  await octokitApp.webhooks.verifyAndReceive(event);
+  await state.octokitApp.webhooks.verifyAndReceive(event);
 
-  return new JsonResponse({ stillProcessing: true });
+  return jsonResponse({ ok: true });
 }
 
-class JsonResponse extends Response {
-  constructor(data, status = 200) {
-    super(JSON.stringify(data), {
-      status,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
+function jsonResponse(data, status = 200) {
+  return {
+    statusCode: status,
+    body: JSON.stringify(data),
+    headers: {
+      "Content-Type": "application/json",
+    },
+  };
 }
 
-class ErrorJsonResponse extends JsonResponse {
-  constructor(error, status = 500) {
-    super({ error }, status);
-  }
+function errorJsonResponse(error, status = 500) {
+  return jsonResponse({ error }, status);
 }

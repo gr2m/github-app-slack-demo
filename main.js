@@ -121,9 +121,9 @@ export default async function main({
           const subscriptions = {
             [settings.slackAppId]: {
               [command.team_id]: {
-                [command.channel_id]: {
+                [installationId]: {
                   slackEnterpriseId: command.enterprise_id,
-                  githubInstallationId: installationId,
+                  channelId: command.channel_id,
                 },
               },
             },
@@ -159,12 +159,11 @@ export default async function main({
           if (!subscriptions[settings.slackAppId][command.team_id]) {
             subscriptions[settings.slackAppId][command.team_id] = {};
           }
-          subscriptions[settings.slackAppId][command.team_id][
-            command.channel_id
-          ] = {
-            slackEnterpriseId: command.enterprise_id,
-            githubInstallationId: installationId,
-          };
+          subscriptions[settings.slackAppId][command.team_id][installationId] =
+            {
+              slackEnterpriseId: command.enterprise_id,
+              channelId: command.channel_id,
+            };
           const newValue = JSON.stringify(subscriptions);
 
           await installationOctokit.request(
@@ -258,23 +257,22 @@ export default async function main({
     // send message to slack
     const message = `New issue opened: ${payload.issue.html_url}`;
 
-    for (const [teamId, subscription] of Object.entries(appSubscription)) {
-      // make sure subscription is for current installation
-      if (subscription.githubInstallationId !== payload.installation.id) {
+    for (const [teamId, installations] of Object.entries(appSubscription)) {
+      const subscription = installations[payload.installation.id];
+      if (!subscription) {
         octokit.log.info(
           {
             owner,
             repo,
             installationId: payload.installation.id,
-            subscriptionInstallationId: appSubscription.githubInstallationId,
+            installations: Object.keys(installations),
           },
           "Subscription not for current installation",
         );
         continue;
       }
 
-      console.log("looking up bot");
-      console.log({ subscription });
+      octokit.log.info(subscription, "subscription found");
 
       const { bot } = await boltInstallationStore.fetchInstallation({
         teamId,
@@ -284,7 +282,7 @@ export default async function main({
 
       await boltApp.client.chat.postMessage({
         token: bot.token,
-        channel: subscription.slackChannelId,
+        channel: subscription.channelId,
         text: message,
       });
     }
