@@ -192,12 +192,12 @@ export async function handler(request) {
 
 /**
  * @param {number} timeout
- * @returns {Promise<Response>}
+ * @returns {Promise<import("@netlify/functions").BuilderResponse>}
  */
 function respondWithStillProcessingOnTimeout(timeout) {
   return new Promise((resolve) => {
     setTimeout(() => {
-      resolve(jsonResponse({ stillProcessing: true }));
+      resolve(jsonResponse({ stillProcessing: true }, 202));
     }, timeout).unref();
   });
 }
