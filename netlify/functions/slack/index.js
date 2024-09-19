@@ -2,14 +2,18 @@
 
 import Bolt from "@slack/bolt";
 import { App as OctokitApp, Octokit } from "octokit";
-import { cleanEnv, str } from "envalid";
+import { cleanEnv, str, makeValidator } from "envalid";
 import pino from "pino";
 import serverless from "serverless-http";
 
 import main from "../../../main.js";
 import { getInstallationStore } from "../../../lib/slack-installation-store.js";
 
-console.log(process.env);
+const netlifyDeployUrl = makeValidator((url) => {
+  // DEPLOY_URL is only set on build, no when functions are run.
+  // As a workaround, we set WORKAROUND_DEPLOY_URL but only for branch deploys
+  return process.env.WORKAROUND_DEPLOY_URL || url;
+});
 
 const env = cleanEnv(process.env, {
   // GitHub App credentials
@@ -29,7 +33,7 @@ const env = cleanEnv(process.env, {
   SLACK_COMMAND: str({ default: "/hello-github-local" }),
 
   // netlify environment variables
-  DEPLOY_URL: str(),
+  URL: netlifyDeployUrl(),
   SITE_ID: str(),
   NETLIFY_PERSONAL_ACCESS_TOKEN: str(),
 });
@@ -70,7 +74,7 @@ const expressReceiver = new Bolt.ExpressReceiver({
     installPath: "/api/slack/install",
     redirectUriPath: "/api/slack/oauth_redirect",
   },
-  redirectUri: `${env.DEPLOY_URL}/api/slack/oauth_redirect`,
+  redirectUri: `${env.URL}/api/slack/oauth_redirect`,
   installationStore: boltInstallationStore,
   endpoints: {
     events: "/api/slack/events",
