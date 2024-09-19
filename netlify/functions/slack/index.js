@@ -9,6 +9,8 @@ import serverless from "serverless-http";
 import main from "../../../main.js";
 import { getInstallationStore } from "../../../lib/slack-installation-store.js";
 
+console.log(process.env);
+
 const env = cleanEnv(process.env, {
   // GitHub App credentials
   GITHUB_APP_ID: str(),
