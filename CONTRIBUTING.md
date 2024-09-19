@@ -48,6 +48,14 @@ npm run scripts/register-github-app.js
 1. Paste the contents of your `slack-manifest.yaml` file into the provided field. Replace the placeholders
 1. Once created, copy the "Signing Secret". You will need this value as the value for `SLACK_SIGNING_SECRET` in your `.env` file.
 
+### Generate a Netlify Personal Access Token
+
+The token is needed to access the Netlify Blob Storage APi.
+
+1. Open https://app.netlify.com/user/applications/personal
+2. Generate a token without expiration
+3. Set the token as the value for `NETLIFY_PERSONAL_ACCESS_TOKEN` in your `.env` file.
+
 ### Verify Credentials
 
 ```
