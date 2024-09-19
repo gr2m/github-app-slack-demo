@@ -27,7 +27,7 @@ const env = cleanEnv(process.env, {
   SLACK_COMMAND: str({ default: "/hello-github-local" }),
 
   // netlify environment variables
-  URL: str(),
+  DEPLOY_URL: str(),
   SITE_ID: str(),
   NETLIFY_PERSONAL_ACCESS_TOKEN: str(),
 });
@@ -68,7 +68,7 @@ const expressReceiver = new Bolt.ExpressReceiver({
     installPath: "/api/slack/install",
     redirectUriPath: "/api/slack/oauth_redirect",
   },
-  redirectUri: `${env.URL}/api/slack/oauth_redirect`,
+  redirectUri: `${env.DEPLOY_URL}/api/slack/oauth_redirect`,
   installationStore: boltInstallationStore,
   endpoints: {
     events: "/api/slack/events",

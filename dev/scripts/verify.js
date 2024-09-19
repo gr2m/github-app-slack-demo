@@ -10,6 +10,7 @@ const env = cleanEnv(process.env, {
   GITHUB_APP_PRIVATE_KEY: str(),
 
   // Slack App credentials
+  SLACK_APP_ID: str(),
   SLACK_CLIENT_ID: str(),
   SLACK_CLIENT_SECRET: str(),
   SLACK_SIGNING_SECRET: str(),

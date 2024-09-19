@@ -37,7 +37,7 @@ const env = cleanEnv(process.env, {
 
   // netlify environment variables
   NETLIFY_LOCAL: str({ choices: ["true"] }),
-  URL: isNetlifyLiveUrl(),
+  DEPLOY_URL: isNetlifyLiveUrl(),
 });
 
 main();
@@ -73,7 +73,7 @@ async function main() {
   const { data: appHookConfig } = await githubAppClient.octokit.request(
     "GET /app/hook/config",
   );
-  const githubWebhookUrl = `${env.URL}/api/github-webhooks`;
+  const githubWebhookUrl = `${env.DEPLOY_URL}/api/github-webhooks`;
   if (appHookConfig.url === githubWebhookUrl) {
     console.log(
       `${DEV_SERVER_LOG_PREFIX} GitHub App webhook URL is already up-to-date.`,
@@ -104,7 +104,7 @@ async function main() {
   });
 
   const envFileContents = await readFile(".env", "utf8");
-  const slackUrl = `${env.URL}/api/slack`;
+  const slackUrl = `${env.DEPLOY_URL}/api/slack`;
   const slackOauthRedirectUrl = `${slackUrl}/oauth_redirect`;
   const slackEventsUrl = `${slackUrl}/events`;
 
