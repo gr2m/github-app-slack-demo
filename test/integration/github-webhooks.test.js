@@ -25,9 +25,12 @@ test("issues.opened event", async (t) => {
       "path:/repos/octocat/hello-world/actions/variables/HELLO_SLACK_SUBSCRIPTIONS",
       {
         value: JSON.stringify({
-          B12345678: {
-            slackChannelId: "C12345678",
-            githubInstallationId: 1,
+          A12345678: {
+            T12345678: {
+              1: {
+                channelId: "C12345678",
+              },
+            },
           },
         }),
       },
@@ -87,7 +90,27 @@ test("issues.opened event", async (t) => {
     };
   };
 
-  main({ octokitApp, boltApp, settings: { slackCommand: "/hello-github" } });
+  main({
+    octokitApp,
+    boltApp,
+    boltInstallationStore: {
+      async fetchInstallation() {
+        return {
+          team: { id: "T12345678" },
+          tokenType: "bot",
+          isEnterpriseInstall: false,
+          appId: "A12345678",
+          authVersion: "v2",
+          bot: {
+            scopes: ["chat:write", "chat:write.public", "commands"],
+            token: "<token>",
+            id: "B12345678",
+          },
+        };
+      },
+    },
+    settings: { slackCommand: "/hello-github", slackAppId: "A12345678" },
+  });
 
   // Act
   await octokitApp.webhooks.receive({
@@ -165,7 +188,11 @@ test("issues.opened event - subscription not found", async (t) => {
     },
   });
 
-  main({ octokitApp, boltApp, settings: { slackCommand: "/hello-github" } });
+  main({
+    octokitApp,
+    boltApp,
+    settings: { slackCommand: "/hello-github", slackAppId: "A12345678" },
+  });
 
   // Act
   await octokitApp.webhooks.receive({
@@ -208,9 +235,12 @@ test("issues.opened event - subscription found but not for app", async (t) => {
       "path:/repos/octocat/hello-world/actions/variables/HELLO_SLACK_SUBSCRIPTIONS",
       {
         value: JSON.stringify({
-          B007: {
-            slackChannelId: "C007",
-            githubInstallationId: 2,
+          ANOT12345678: {
+            T12345678: {
+              1: {
+                channelId: "C12345678",
+              },
+            },
           },
         }),
       },
@@ -263,7 +293,11 @@ test("issues.opened event - subscription found but not for app", async (t) => {
     };
   };
 
-  main({ octokitApp, boltApp, settings: { slackCommand: "/hello-github" } });
+  main({
+    octokitApp,
+    boltApp,
+    settings: { slackCommand: "/hello-github", slackAppId: "A12345678" },
+  });
 
   // Act
   await octokitApp.webhooks.receive({
@@ -306,9 +340,12 @@ test("issues.opened event - subscription found but not for installation", async 
       "path:/repos/octocat/hello-world/actions/variables/HELLO_SLACK_SUBSCRIPTIONS",
       {
         value: JSON.stringify({
-          B12345678: {
-            slackChannelId: "C12345678",
-            githubInstallationId: 2,
+          A12345678: {
+            T12345678: {
+              2: {
+                channelId: "C12345678",
+              },
+            },
           },
         }),
       },
@@ -361,7 +398,11 @@ test("issues.opened event - subscription found but not for installation", async 
     };
   };
 
-  main({ octokitApp, boltApp, settings: { slackCommand: "/hello-github" } });
+  main({
+    octokitApp,
+    boltApp,
+    settings: { slackCommand: "/hello-github", slackAppId: "A12345678" },
+  });
 
   // Act
   await octokitApp.webhooks.receive({
@@ -434,7 +475,11 @@ test("error in event handler", async (t) => {
     throw new Error("error from event handler");
   });
 
-  main({ octokitApp, boltApp, settings: { slackCommand: "/hello-github" } });
+  main({
+    octokitApp,
+    boltApp,
+    settings: { slackCommand: "/hello-github", slackAppId: "A12345678" },
+  });
 
   // Act
   await t.throwsAsync(() =>

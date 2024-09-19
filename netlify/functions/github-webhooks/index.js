@@ -99,10 +99,8 @@ export async function setupApp() {
         setName: (name) => {},
       },
       installationStore: boltInstallationStore,
-      authorize: async (...args) => {
-        console.log(`authorize`, { args });
-        return {};
-      },
+      /* c8 ignore next */
+      authorize: async (...args) => ({}),
     });
 
     state.githubWebhooksLog.info("Register Octokit and Bolt handlers");
