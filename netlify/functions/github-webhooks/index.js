@@ -139,9 +139,8 @@ export default async function handler(event) {
       `handler` function is called with an HTTP method other than `POST`, it returns a
       response with a status code of `405` along with an error message indicating that
       the method is not allowed for that endpoint. */
-    return new Response(JSON.stringify({ error: "Method not allowed" }), {
-      status: 405,
-    });
+
+    return new ErrorJsonResponse("Method not allowed", 405);
   }
 
   const eventName = event.headers["x-github-event"];
@@ -169,10 +168,7 @@ export default async function handler(event) {
     // app.webhooks.verifyAndReceive throws an AggregateError
     if (!Array.isArray(error.errors)) {
       state.githubWebhooksLog.error({ err: error }, "Handler error");
-
-      return new Response("Error: An unexpected error occurred", {
-        status: 500,
-      });
+      return new ErrorJsonResponse("An unexpected error occurred");
     }
 
     state.githubWebhooksLog.error({ err: error }, "Handler error");
@@ -183,9 +179,7 @@ export default async function handler(event) {
       : "Error: An unexpected error occurred";
     const statusCode = typeof err.status !== "undefined" ? err.status : 500;
 
-    return new Response(errorMessage, {
-      status: statusCode,
-    });
+    return new ErrorJsonResponse(errorMessage, statusCode);
   });
 }
 
@@ -196,11 +190,7 @@ export default async function handler(event) {
 function respondWithStillProcessingOnTimeout(timeout) {
   return new Promise((resolve) => {
     setTimeout(() => {
-      resolve(
-        new Response(JSON.stringify({ ok: true }), {
-          status: 202,
-        }),
-      );
+      resolve(new JsonResponse({ stillProcessing: true }));
     }, timeout).unref();
   });
 }
@@ -214,7 +204,20 @@ async function handleWebhookRequest(octokitApp, event) {
   await setupApp();
   await octokitApp.webhooks.verifyAndReceive(event);
 
-  return new Response("OK", {
-    status: 200,
-  });
+  return new JsonResponse({ stillProcessing: true });
+}
+
+class JsonResponse extends Response {
+  constructor(data, status = 200) {
+    super(JSON.stringify(data), {
+      status,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+}
+
+class ErrorJsonResponse extends JsonResponse {
+  constructor(error, status = 500) {
+    super({ error }, status);
+  }
 }

@@ -6,11 +6,11 @@ export const healthLog = pino().child({ function: "health" });
 /**
  * Netlify function for health check
  */
-export async function handler() {
+export default async function handler() {
   healthLog.info("Health check");
 
-  return {
-    body: JSON.stringify({ ok: true }),
-    statusCode: 200,
-  };
+  return new Response(JSON.stringify({ ok: true }), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
 }
