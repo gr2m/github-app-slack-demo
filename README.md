@@ -1,6 +1,6 @@
 # github-app-slack-demo
 
-A minimal demo app that integrates GitHub with Slack.
+A Slack app that notifies you about new issues in GitHub repositories.
 
 ## About this app
 

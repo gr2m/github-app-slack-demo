@@ -1,22 +1,69 @@
-<h1>GitHub / Slack demo</h1>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>GitHub / Slack demo</title>
+    <meta
+      name="description"
+      content="A Slack app that notifies you about new issues in GitHub repositories."
+    />
 
-<p>
-  <a href="/api/slack/install"
-    ><img
-      alt="Add to Slack"
-      height="40"
-      width="139"
-      src="https://platform.slack-edge.com/img/add_to_slack.png"
-      srcset="
-        https://platform.slack-edge.com/img/add_to_slack.png    1x,
-        https://platform.slack-edge.com/img/add_to_slack@2x.png 2x
-      "
-  /></a>
-</p>
+    <!-- Pico.css -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@picocss/pico@2.0.6/css/pico.min.css"
+    />
+  </head>
 
-<p>
-  Documentation:
-  <a href="https://github.com/gr2m/github-app-slack-demo#readme"
-    >https://github.com/gr2m/github-app-slack-demo</a
-  >
-</p>
+  <body style="padding: 3rem 0 0; text-align: center">
+    <!-- Header -->
+    <header class="container">
+      <hgroup>
+        <h1>Hello, GitHub!</h1>
+        <p>
+          A Slack app that notifies you about new issues in GitHub repositories.
+        </p>
+      </hgroup>
+    </header>
+    <!-- ./ Header -->
+
+    <!-- Main -->
+    <main class="container">
+      <p>
+        <a href="/api/slack/install"
+          ><img
+            alt="Add to Slack"
+            height="40"
+            width="139"
+            src="https://platform.slack-edge.com/img/add_to_slack.png"
+            srcset="
+              https://platform.slack-edge.com/img/add_to_slack.png    1x,
+              https://platform.slack-edge.com/img/add_to_slack@2x.png 2x
+            "
+        /></a>
+      </p>
+    </main>
+    <!-- ./ Main -->
+
+    <!-- Footer -->
+    <footer class="container">
+      <small>
+        <a href="https://github.com/gr2m/github-app-slack-demo/"
+          >Source code and documentation</a
+        >
+        •
+        <a href="https://github.com/gr2m/github-app-slack-demo/issues"
+          >Support</a
+        >
+        •
+        <a
+          href="https://github.com/gr2m/github-app-slack-demo/blob/main/PRIVACY.md"
+          >Privacy Policy</a
+        >
+      </small>
+    </footer>
+    <!-- ./ Footer -->
+  </body>
+</html>
