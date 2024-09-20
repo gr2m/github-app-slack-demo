@@ -1,5 +1,3 @@
-// @ts-check
-
 import Bolt from "@slack/bolt";
 import test from "ava";
 import fetchMock from "fetch-mock";
@@ -20,21 +18,8 @@ test("issues.opened event", async (t) => {
     .sandbox()
     .postOnce("path:/app/installations/1/access_tokens", {
       token: "<installation access token>",
-    })
-    .getOnce(
-      "path:/repos/octocat/hello-world/actions/variables/HELLO_SLACK_SUBSCRIPTIONS",
-      {
-        value: JSON.stringify({
-          A12345678: {
-            T12345678: {
-              1: {
-                channelId: "C12345678",
-              },
-            },
-          },
-        }),
-      },
-    );
+    });
+
   const octokitApp = new OctokitApp({
     appId: 1,
     privateKey: DUMMY_PRIVATE_KEY,
@@ -109,6 +94,12 @@ test("issues.opened event", async (t) => {
         };
       },
     },
+    subscriptionsStore: {
+      async getSubscriptionKeysForRepository() {
+        // subscription found
+        return ["octocat/hello-world/A12345678/1/T12345678/C12345678"];
+      },
+    },
     settings: { slackCommand: "/hello-github", slackAppId: "A12345678" },
   });
 
@@ -149,11 +140,7 @@ test("issues.opened event - subscription not found", async (t) => {
     .sandbox()
     .postOnce("path:/app/installations/1/access_tokens", {
       token: "<installation access token>",
-    })
-    .getOnce(
-      "path:/repos/octocat/hello-world/actions/variables/HELLO_SLACK_SUBSCRIPTIONS",
-      404,
-    );
+    });
   const octokitApp = new OctokitApp({
     appId: 1,
     privateKey: DUMMY_PRIVATE_KEY,
@@ -191,6 +178,12 @@ test("issues.opened event - subscription not found", async (t) => {
   main({
     octokitApp,
     boltApp,
+    subscriptionsStore: {
+      async getSubscriptionKeysForRepository() {
+        // no subscriptions found
+        return [];
+      },
+    },
     settings: { slackCommand: "/hello-github", slackAppId: "A12345678" },
   });
 
@@ -223,28 +216,14 @@ test("issues.opened event - subscription not found", async (t) => {
   t.true(fetchMock.done());
 });
 
-test("issues.opened event - subscription found but not for app", async (t) => {
+test("issues.opened event - no slack app installation found", async (t) => {
   // Arrange
   const [logger, logs] = createMockLoggerAndLogs();
   const mock = fetchMock
     .sandbox()
     .postOnce("path:/app/installations/1/access_tokens", {
       token: "<installation access token>",
-    })
-    .getOnce(
-      "path:/repos/octocat/hello-world/actions/variables/HELLO_SLACK_SUBSCRIPTIONS",
-      {
-        value: JSON.stringify({
-          ANOT12345678: {
-            T12345678: {
-              1: {
-                channelId: "C12345678",
-              },
-            },
-          },
-        }),
-      },
-    );
+    });
   const octokitApp = new OctokitApp({
     appId: 1,
     privateKey: DUMMY_PRIVATE_KEY,
@@ -279,128 +258,20 @@ test("issues.opened event - subscription found but not for app", async (t) => {
     },
   });
 
-  // mock requests to Slack API
-  boltApp.client.makeRequest = (method, body, headers) => {
-    throw Object.assign(new Error(`Unexpected request`), {
-      method,
-      body,
-      headers,
-    });
-  };
-  boltApp.client.auth.test = async (args) => {
-    return {
-      bot_id: "B12345678",
-    };
-  };
-
   main({
     octokitApp,
     boltApp,
-    settings: { slackCommand: "/hello-github", slackAppId: "A12345678" },
-  });
-
-  // Act
-  await octokitApp.webhooks.receive({
-    id: "1",
-    name: "issues",
-    payload: {
-      action: "opened",
-      issue: {
-        number: 1,
-        title: "Issue title",
-        body: "Issue body",
-        html_url: "<html url>",
-      },
-      repository: {
-        owner: {
-          login: "octocat",
-        },
-        name: "hello-world",
-      },
-      installation: {
-        id: 1,
+    boltInstallationStore: {
+      async fetchInstallation() {
+        return null;
       },
     },
-  });
-
-  // Assert
-  t.snapshot(logs, "logs");
-  t.true(fetchMock.done());
-});
-
-test("issues.opened event - subscription found but not for installation", async (t) => {
-  // Arrange
-  const [logger, logs] = createMockLoggerAndLogs();
-  const mock = fetchMock
-    .sandbox()
-    .postOnce("path:/app/installations/1/access_tokens", {
-      token: "<installation access token>",
-    })
-    .getOnce(
-      "path:/repos/octocat/hello-world/actions/variables/HELLO_SLACK_SUBSCRIPTIONS",
-      {
-        value: JSON.stringify({
-          A12345678: {
-            T12345678: {
-              2: {
-                channelId: "C12345678",
-              },
-            },
-          },
-        }),
+    subscriptionsStore: {
+      async getSubscriptionKeysForRepository() {
+        // subscription found
+        return ["octocat/hello-world/A12345678/1/T12345678/C12345678"];
       },
-    );
-  const octokitApp = new OctokitApp({
-    appId: 1,
-    privateKey: DUMMY_PRIVATE_KEY,
-    webhooks: {
-      secret: "secret",
     },
-    Octokit: TestOctokit.defaults({
-      request: {
-        fetch: mock,
-      },
-    }),
-    log: {
-      error: logger.error.bind(logger),
-      warn: logger.warn.bind(logger),
-      info: logger.info.bind(logger),
-      debug: logger.debug.bind(logger),
-    },
-  });
-  const boltApp = new Bolt.App({
-    signingSecret: "",
-    token: "",
-    logger: {
-      debug: logger.debug.bind(logger),
-      info: logger.info.bind(logger),
-      warn: logger.warn.bind(logger),
-      error: logger.error.bind(logger),
-      getLevel: () => "debug",
-      setLevel: (level) => {
-        logger.level = level;
-      },
-      setName: (name) => {},
-    },
-  });
-
-  // mock requests to Slack API
-  boltApp.client.makeRequest = (method, body, headers) => {
-    throw Object.assign(new Error(`Unexpected request`), {
-      method,
-      body,
-      headers,
-    });
-  };
-  boltApp.client.auth.test = async (args) => {
-    return {
-      bot_id: "B12345678",
-    };
-  };
-
-  main({
-    octokitApp,
-    boltApp,
     settings: { slackCommand: "/hello-github", slackAppId: "A12345678" },
   });
 
