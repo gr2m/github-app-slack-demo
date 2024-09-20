@@ -8,6 +8,7 @@ import serverless from "serverless-http";
 
 import main from "../../../main.js";
 import { getInstallationStore } from "../../../lib/slack-installation-store.js";
+import { getSubscriptionsStore } from "../../../lib/subscriptions-store.js";
 
 const netlifyDeployUrl = makeValidator((url) => {
   // DEPLOY_URL is only set on build, no when functions are run.
@@ -56,6 +57,12 @@ const boltInstallationStore = getInstallationStore({
   siteID: env.SITE_ID,
   token: env.NETLIFY_PERSONAL_ACCESS_TOKEN,
 });
+
+const subscriptionsStore = getSubscriptionsStore({
+  siteID: env.SITE_ID,
+  token: env.NETLIFY_PERSONAL_ACCESS_TOKEN,
+});
+
 // NOTE: Ideally we would use the AwsLambdaReceiver, but it does not support Slack OAuth Flow as of 2024-09-14
 //       https://github.com/slackapi/bolt-js/blob/87d75c59f5eb9b28586173487dac1a0d6e1deada/src/receivers/AwsLambdaReceiver.ts#L93-L96
 //
@@ -111,6 +118,7 @@ main({
   boltApp,
   octokitApp,
   boltInstallationStore,
+  subscriptionsStore,
   settings: {
     slackAppId: env.SLACK_APP_ID,
     slackCommand: env.SLACK_COMMAND,

@@ -7,6 +7,7 @@ import pino from "pino";
 
 import main from "../../../main.js";
 import { getInstallationStore } from "../../../lib/slack-installation-store.js";
+import { getSubscriptionsStore } from "../../../lib/subscriptions-store.js";
 
 const env = cleanEnv(process.env, {
   // GitHub App credentials
@@ -78,10 +79,12 @@ export async function setupApp() {
     octokitApp.webhooks.receive;
 
     state.githubWebhooksLog.info("Set up Bolt app");
+
     const boltInstallationStore = getInstallationStore({
       siteID: env.SITE_ID,
       token: env.NETLIFY_PERSONAL_ACCESS_TOKEN,
     });
+
     const boltApp = new state.Bolt.App({
       signingSecret: `${env.SLACK_SIGNING_SECRET}`,
       clientId: env.SLACK_CLIENT_ID,
@@ -103,11 +106,17 @@ export async function setupApp() {
       authorize: async (...args) => ({}),
     });
 
+    const subscriptionsStore = getSubscriptionsStore({
+      siteID: env.SITE_ID,
+      token: env.NETLIFY_PERSONAL_ACCESS_TOKEN,
+    });
+
     state.githubWebhooksLog.info("Register Octokit and Bolt handlers");
     await state.main({
       octokitApp,
       boltApp,
       boltInstallationStore,
+      subscriptionsStore,
       settings: {
         slackCommand: env.SLACK_COMMAND,
         slackAppId: env.SLACK_APP_ID,

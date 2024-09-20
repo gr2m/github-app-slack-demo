@@ -7,13 +7,15 @@ Example: \`/hello-github subscribe monalisa/smile\``;
  * @param {object} options
  * @param {import("octokit").App} options.octokitApp
  * @param {import("@slack/bolt").App} options.boltApp
- * @param {import("@slack/oauth").FileInstallationStore} options.boltInstallationStore
+ * @param {import("@slack/oauth").InstallationStore} options.boltInstallationStore
+ * @param {ReturnType<import("./lib/subscriptions-store").getSubscriptionsStore>} options.subscriptionsStore
  * @param {{ slackAppId: string, slackCommand: string }} options.settings
  */
 export default async function main({
   octokitApp,
   boltApp,
   boltInstallationStore,
+  subscriptionsStore,
   settings,
 }) {
   // https://api.slack.com/events/app_home_opened
@@ -107,84 +109,58 @@ export default async function main({
         const installationOctokit =
           await octokitApp.getInstallationOctokit(installationId);
 
-        const { data } = await installationOctokit
-          .request("GET /repos/{owner}/{repo}/actions/variables/{name}", {
-            owner,
-            repo,
-            name: `HELLO_SLACK_SUBSCRIPTIONS`,
-          })
-          .catch(() => ({ data: { value: false } }));
+        let subscription = await subscriptionsStore.get({
+          owner,
+          repo,
+          slackAppId: settings.slackAppId,
+          githubInstallationId: installationId,
+          teamId: command.team_id,
+          channelId: command.channel_id,
+        });
 
-        const value = data.value;
-        if (value === false) {
-          // create the variable
-          const subscriptions = {
-            [settings.slackAppId]: {
-              [command.team_id]: {
-                [installationId]: {
-                  slackEnterpriseId: command.enterprise_id,
-                  channelId: command.channel_id,
-                },
-              },
-            },
-          };
-          const newValue = JSON.stringify(subscriptions);
-
-          await installationOctokit.request(
-            "POST /repos/{owner}/{repo}/actions/variables",
-            {
-              owner,
-              repo,
-              name: `HELLO_SLACK_SUBSCRIPTIONS`,
-              value: newValue,
-            },
-          );
-
+        if (subscription) {
           logger.info(
             {
               owner,
               repo,
               slackAppId: settings.slackAppId,
-              slackChannelId: command.channel_id,
               githubInstallationId: installationId,
+              teamId: command.team_id,
+              channelId: command.channel_id,
+              ...subscription,
             },
-            "Variable created in repository",
+            "Subscription found",
           );
         } else {
-          // update the variable
-          const subscriptions = JSON.parse(value);
-          if (!subscriptions[settings.slackAppId]) {
-            subscriptions[settings.slackAppId] = {};
-          }
-          if (!subscriptions[settings.slackAppId][command.team_id]) {
-            subscriptions[settings.slackAppId][command.team_id] = {};
-          }
-          subscriptions[settings.slackAppId][command.team_id][installationId] =
-            {
-              slackEnterpriseId: command.enterprise_id,
-              channelId: command.channel_id,
-            };
-          const newValue = JSON.stringify(subscriptions);
+          subscription = {
+            slackEnterpriseId: Boolean(command.enterprise_id),
+          };
 
-          await installationOctokit.request(
-            "PATCH /repos/{owner}/{repo}/actions/variables/{name}",
+          await subscriptionsStore.set(
             {
               owner,
               repo,
-              name: `HELLO_SLACK_SUBSCRIPTIONS`,
-              value: newValue,
+              slackAppId: settings.slackAppId,
+              githubInstallationId: installationId,
+              teamId: command.team_id,
+              channelId: command.channel_id,
             },
+            subscription,
           );
 
           logger.info(
             {
               owner,
               repo,
+
               slackAppId: settings.slackAppId,
-              slackChannelId: command.channel_id,
               githubInstallationId: installationId,
+              teamId: command.team_id,
+              channelId: command.channel_id,
+
+              ...subscription,
             },
-            "Variable updated in repository",
+            "Subscription added to store",
           );
         }
 
@@ -204,6 +180,8 @@ export default async function main({
     const owner = payload.repository.owner.login;
     const repo = payload.repository.name;
     const issueNumber = payload.issue.number;
+    // @ts-expect-error - .installation is not defined for manual hooks, but always is for app hooks.
+    const installationId = Number(payload.installation.id);
 
     octokit.log.info(
       {
@@ -214,77 +192,72 @@ export default async function main({
       "An issue was opened",
     );
 
-    // get the subscription settings
-    const {
-      data: { value },
-    } = await octokit
-      .request("GET /repos/{owner}/{repo}/actions/variables/{name}", {
+    // get all subscriptions for the given repository and slack app
+    const subscriptionKeys =
+      await subscriptionsStore.getSubscriptionKeysForRepository({
         owner,
         repo,
-        name: `HELLO_SLACK_SUBSCRIPTIONS`,
-      })
-      .catch(() => ({ data: { value: false } }));
+        slackAppId: settings.slackAppId,
+        githubInstallationId: installationId,
+      });
 
-    if (value === false) {
+    if (subscriptionKeys.length === 0) {
       octokit.log.info(
         {
           owner,
           repo,
+          appId: settings.slackAppId,
+          installationId,
         },
         "No subscriptions found",
       );
       return;
     }
 
-    const subscriptions = JSON.parse(value);
+    let currentTeamId;
+    let currentBot;
+    for (const key of subscriptionKeys) {
+      const [channelId, teamId] = key.split("/").reverse();
 
-    // get slack app id
-    const appSubscription = subscriptions[settings.slackAppId];
+      if (currentTeamId !== teamId) {
+        const installation = await boltInstallationStore.fetchInstallation({
+          teamId: teamId,
 
-    if (!appSubscription) {
+          // no support for enterprise installs yet
+          isEnterpriseInstall: false,
+          enterpriseId: "<tbd-enterpriseId>",
+        });
+
+        if (!installation) {
+          octokit.log.warn(
+            {
+              key,
+              teamId,
+            },
+            "Slack installation not found",
+          );
+          continue;
+        }
+
+        currentBot = installation.bot;
+      }
+
+      await boltApp.client.chat.postMessage({
+        token: currentBot.token,
+        channel: channelId,
+        text: `New issue opened: ${payload.issue.html_url}`,
+      });
+
       octokit.log.info(
         {
           owner,
           repo,
-          appId: settings.slackAppId,
-          subscriptionAppIds: Object.keys(subscriptions),
+          issueNumber,
+          teamId,
+          channelId,
         },
-        "Subscription not found for app",
+        "Sent message to Slack",
       );
-      return;
-    }
-
-    // send message to slack
-    const message = `New issue opened: ${payload.issue.html_url}`;
-
-    for (const [teamId, installations] of Object.entries(appSubscription)) {
-      const subscription = installations[payload.installation.id];
-      if (!subscription) {
-        octokit.log.info(
-          {
-            owner,
-            repo,
-            installationId: payload.installation.id,
-            installations: Object.keys(installations),
-          },
-          "Subscription not for current installation",
-        );
-        continue;
-      }
-
-      octokit.log.info(subscription, "subscription found");
-
-      const { bot } = await boltInstallationStore.fetchInstallation({
-        teamId,
-        isEnterpriseInstall: false,
-        enterpriseId: subscription.slackEnterpriseId,
-      });
-
-      await boltApp.client.chat.postMessage({
-        token: bot.token,
-        channel: subscription.channelId,
-        text: message,
-      });
     }
   });
 
