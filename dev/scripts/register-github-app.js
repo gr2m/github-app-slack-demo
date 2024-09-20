@@ -10,7 +10,6 @@ async function run() {
     name: "hello-slack-local-<your-github-username>",
     default_events: ["issues"],
     default_permissions: {
-      actions_variables: "write",
       issues: "write",
       metadata: "read",
     },
