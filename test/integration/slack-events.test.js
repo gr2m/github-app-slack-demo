@@ -456,16 +456,6 @@ test("/hello-github subscribe monalisa/smile - no variable", async (t) => {
     })
     .postOnce("path:/app/installations/1/access_tokens", {
       token: "<token>",
-    })
-    .getOnce(
-      "path:/repos/monalisa/smile/actions/variables/HELLO_SLACK_SUBSCRIPTIONS",
-      404,
-    )
-    .postOnce("path:/repos/monalisa/smile/actions/variables", 201, {
-      functionMatcher(url, { method, body }) {
-        requests.push([method, new URL(url).pathname, JSON.parse(body)]);
-        return true;
-      },
     });
 
   const octokitApp = new OctokitApp({
@@ -529,7 +519,17 @@ test("/hello-github subscribe monalisa/smile - no variable", async (t) => {
     trigger_id: "7461069880567.2367503921381.9506161dae0667c99560d2c7b9a58f16",
   };
 
-  main({ octokitApp, boltApp, settings: { slackCommand: "/hello-github" } });
+  main({
+    octokitApp,
+    boltApp,
+    subscriptionsStore: {
+      async get() {
+        return null;
+      },
+      async set() {},
+    },
+    settings: { slackCommand: "/hello-github" },
+  });
 
   // Act
   const slackEvent = {
@@ -561,25 +561,7 @@ test("/hello-github subscribe monalisa/smile - existing variable", async (t) => 
     })
     .postOnce("path:/app/installations/1/access_tokens", {
       token: "<token>",
-    })
-    .getOnce(
-      "path:/repos/monalisa/smile/actions/variables/HELLO_SLACK_SUBSCRIPTIONS",
-      {
-        value: JSON.stringify({
-          foo: "bar",
-        }),
-      },
-    )
-    .patchOnce(
-      "path:/repos/monalisa/smile/actions/variables/HELLO_SLACK_SUBSCRIPTIONS",
-      200,
-      {
-        functionMatcher(url, { method, body }) {
-          requests.push([method, new URL(url).pathname, JSON.parse(body)]);
-          return true;
-        },
-      },
-    );
+    });
 
   const octokitApp = new OctokitApp({
     appId: 1,
@@ -644,7 +626,17 @@ test("/hello-github subscribe monalisa/smile - existing variable", async (t) => 
     trigger_id: "7461069880567.2367503921381.9506161dae0667c99560d2c7b9a58f16",
   };
 
-  main({ octokitApp, boltApp, settings: { slackCommand: "/hello-github" } });
+  main({
+    octokitApp,
+    boltApp,
+    subscriptionsStore: {
+      async get() {
+        // subscription found
+        return {};
+      },
+    },
+    settings: { slackCommand: "/hello-github" },
+  });
 
   // Act
   const slackEvent = {
