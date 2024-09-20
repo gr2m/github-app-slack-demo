@@ -8,6 +8,8 @@ This app is a minimal demo that showcases how to integrate GitHub with Slack usi
 
 The functionality is kept intentionally simple: use the `/hello-github subscribe owner/repo` Slack command to subscribe to new issues for a GitHub repository.
 
+You can try out the latest version of this app at https://github-app-slack-demo.netlify.app/.
+
 ## What others built
 
 Did you extend or change the functionality and want to share it with others? Add a link to your repository below
