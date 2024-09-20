@@ -48,7 +48,7 @@ export default async function main({
             type: "section",
             text: {
               type: "mrkdwn",
-              text: "TODO: Put something useful in here",
+              text: "Usage: ${USAGE}",
             },
           },
         ],
