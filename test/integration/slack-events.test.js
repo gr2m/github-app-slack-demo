@@ -360,7 +360,7 @@ test("/hello-github subscribe monalisa/smile - no installation", async (t) => {
   // Arrange
   const [logger, logs] = createMockLoggerAndLogs();
   const octokitFetchMock = fetchMock
-    .sandbox()
+    .createInstance()
     .getOnce("path:/repos/monalisa/smile/installation", 404)
     .getOnce("path:/app", 200);
 
@@ -370,7 +370,9 @@ test("/hello-github subscribe monalisa/smile - no installation", async (t) => {
     webhooks: {
       secret: "secret",
     },
-    Octokit: TestOctokit.defaults({ request: { fetch: octokitFetchMock } }),
+    Octokit: TestOctokit.defaults({
+      request: { fetch: octokitFetchMock.fetchHandler },
+    }),
     log: {
       error: logger.error.bind(logger),
       warn: logger.warn.bind(logger),
@@ -450,7 +452,7 @@ test("/hello-github subscribe monalisa/smile - no variable", async (t) => {
   const [logger, logs] = createMockLoggerAndLogs();
   const requests = [];
   const octokitFetchMock = fetchMock
-    .sandbox()
+    .createInstance()
     .getOnce("path:/repos/monalisa/smile/installation", {
       id: 1,
     })
@@ -464,7 +466,9 @@ test("/hello-github subscribe monalisa/smile - no variable", async (t) => {
     webhooks: {
       secret: "secret",
     },
-    Octokit: TestOctokit.defaults({ request: { fetch: octokitFetchMock } }),
+    Octokit: TestOctokit.defaults({
+      request: { fetch: octokitFetchMock.fetchHandler },
+    }),
     log: {
       error: logger.error.bind(logger),
       warn: logger.warn.bind(logger),
@@ -555,7 +559,7 @@ test("/hello-github subscribe monalisa/smile - existing variable", async (t) => 
   const [logger, logs] = createMockLoggerAndLogs();
   const requests = [];
   const octokitFetchMock = fetchMock
-    .sandbox()
+    .createInstance()
     .getOnce("path:/repos/monalisa/smile/installation", {
       id: 1,
     })
@@ -569,7 +573,9 @@ test("/hello-github subscribe monalisa/smile - existing variable", async (t) => 
     webhooks: {
       secret: "secret",
     },
-    Octokit: TestOctokit.defaults({ request: { fetch: octokitFetchMock } }),
+    Octokit: TestOctokit.defaults({
+      request: { fetch: octokitFetchMock.fetchHandler },
+    }),
     log: {
       error: logger.error.bind(logger),
       warn: logger.warn.bind(logger),
