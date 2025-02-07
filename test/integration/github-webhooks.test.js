@@ -15,7 +15,7 @@ test("issues.opened event", async (t) => {
   // Arrange
   const [logger, logs] = createMockLoggerAndLogs();
   const mock = fetchMock
-    .sandbox()
+    .createInstance()
     .postOnce("path:/app/installations/1/access_tokens", {
       token: "<installation access token>",
     });
@@ -28,7 +28,7 @@ test("issues.opened event", async (t) => {
     },
     Octokit: TestOctokit.defaults({
       request: {
-        fetch: mock,
+        fetch: mock.fetchHandler,
       },
     }),
     log: {
@@ -130,14 +130,14 @@ test("issues.opened event", async (t) => {
   // Assert
   t.snapshot(logs, "logs");
   t.snapshot(chatPostMessageCalls, "chatPostMessageCalls");
-  t.true(fetchMock.done());
+  t.true(fetchMock.callHistory.done());
 });
 
 test("issues.opened event - subscription not found", async (t) => {
   // Arrange
   const [logger, logs] = createMockLoggerAndLogs();
   const mock = fetchMock
-    .sandbox()
+    .createInstance()
     .postOnce("path:/app/installations/1/access_tokens", {
       token: "<installation access token>",
     });
@@ -149,7 +149,7 @@ test("issues.opened event - subscription not found", async (t) => {
     },
     Octokit: TestOctokit.defaults({
       request: {
-        fetch: mock,
+        fetch: mock.fetchHandler,
       },
     }),
     log: {
@@ -213,14 +213,14 @@ test("issues.opened event - subscription not found", async (t) => {
 
   // Assert
   t.snapshot(logs, "logs");
-  t.true(fetchMock.done());
+  t.true(fetchMock.callHistory.done());
 });
 
 test("issues.opened event - no slack app installation found", async (t) => {
   // Arrange
   const [logger, logs] = createMockLoggerAndLogs();
   const mock = fetchMock
-    .sandbox()
+    .createInstance()
     .postOnce("path:/app/installations/1/access_tokens", {
       token: "<installation access token>",
     });
@@ -232,7 +232,7 @@ test("issues.opened event - no slack app installation found", async (t) => {
     },
     Octokit: TestOctokit.defaults({
       request: {
-        fetch: mock,
+        fetch: mock.fetchHandler,
       },
     }),
     log: {
@@ -301,13 +301,13 @@ test("issues.opened event - no slack app installation found", async (t) => {
 
   // Assert
   t.snapshot(logs, "logs");
-  t.true(fetchMock.done());
+  t.true(fetchMock.callHistory.done());
 });
 
 test("error in event handler", async (t) => {
   // Arrange
   const [logger, logs] = createMockLoggerAndLogs();
-  const mock = fetchMock.sandbox();
+  const mock = fetchMock.createInstance();
   const octokitApp = new OctokitApp({
     appId: 1,
     privateKey: DUMMY_PRIVATE_KEY,
@@ -316,7 +316,7 @@ test("error in event handler", async (t) => {
     },
     Octokit: TestOctokit.defaults({
       request: {
-        fetch: mock,
+        fetch: mock.fetchHandler,
       },
     }),
     log: {
@@ -363,5 +363,5 @@ test("error in event handler", async (t) => {
 
   // Assert
   t.snapshot(logs, "logs");
-  t.true(fetchMock.done());
+  t.true(fetchMock.callHistory.done());
 });
