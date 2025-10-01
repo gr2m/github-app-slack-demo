@@ -16,14 +16,14 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@netlify/blobs": "^8.0.1",
-    "@netlify/functions": "^3.0.0",
+    "@netlify/blobs": "^10.0.11",
+    "@netlify/functions": "^4.2.6",
     "@slack/bolt": "^4.2.0",
     "@slack/oauth": "^3.0.1",
     "envalid": "^8.0.0",
-    "octokit": "^4.0.2",
+    "octokit": "^5.0.3",
     "pino": "^9.3.2",
-    "serverless-http": "^3.2.0"
+    "serverless-http": "^4.0.0"
   },
   "devDependencies": {
     "ava": "^6.1.3",
