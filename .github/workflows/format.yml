@@ -16,7 +16,7 @@ jobs:
         with:
           app-id: ${{ vars.PRETTIER_APP_ID }}
           private-key: ${{ secrets.PRETTIER_APP_PRIVATE_KEY }}
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ steps.app-token.outputs.token }}
           ref: ${{ github.head_ref }}
